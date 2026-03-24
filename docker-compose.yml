@@ -1,0 +1,53 @@
+services:
+  web:
+    build: .
+    container_name: web-app
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - worker
+      - db
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_secure_password
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass "your_secure_password"
+  worker:
+    build: .
+    container_name: worker
+    restart: always
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_secure_password
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    restart: always
+    environment:
+      - POSTGRES_USER=your_db_user
+      - POSTGRES_PASSWORD=your_db_password
+      - POSTGRES_DB=your_db_name
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+
+volumes:
+  redis-data:
+    driver: local
+  db-data:
+    driver: local

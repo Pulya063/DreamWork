@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DreamWork Career Simulation — forecast your salary, ROI, and skill gaps for your dream job.">
+  <title>Career Simulation — DreamWork</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== Top Bar ========== -->
+  <header class="topbar">
+    <a href="index.html" class="logo">Dream<span>Work</span></a>
+    <div class="flex items-center gap-md">
+      <span class="notif-badge" style="cursor:pointer;font-size:1.2rem;">🔔</span>
+      <div class="flex items-center gap-sm">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--color-sage-light),var(--color-sage));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:0.85rem;">AS</div>
+        <span class="text-sm" style="font-weight:500;">Alexander S.</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout-dashboard">
+
+    <!-- ========== Sidebar ========== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <span class="icon">📊</span> Dashboard
+        </a>
+        <a href="simulation.html" class="sidebar-link active">
+          <span class="icon">🧠</span> Simulation
+        </a>
+        <a href="roadmap.html" class="sidebar-link">
+          <span class="icon">🗺️</span> Roadmap
+        </a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Work</div>
+        <a href="#" class="sidebar-link"><span class="icon">💼</span> Job Market</a>
+        <a href="#" class="sidebar-link"><span class="icon">⚡</span> Skills</a>
+        <a href="#" class="sidebar-link"><span class="icon">✅</span> Tasks</a>
+        <a href="#" class="sidebar-link"><span class="icon">📚</span> Resources</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Account</div>
+        <a href="#" class="sidebar-link"><span class="icon">👤</span> Profile</a>
+        <a href="#" class="sidebar-link"><span class="icon">⚙️</span> Settings</a>
+        <a href="#" class="sidebar-link notif-badge"><span class="icon">🔔</span> Notifications</a>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-section">
+        <a href="login.html" class="sidebar-link" style="color:var(--color-dusty-rose-dk);"><span class="icon">🚪</span> Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ========== Main Content ========== -->
+    <main class="main-content">
+
+      <!-- Page Header -->
+      <div class="page-header animate-fade-in-up">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a> <span class="sep">/</span> <span>Simulation</span>
+        </div>
+        <h1>Career Simulation</h1>
+        <p>Model your career path and see projected outcomes before you commit.</p>
+      </div>
+
+      <div class="grid grid-2 gap-xl">
+
+        <!-- Input Form -->
+        <div class="card animate-fade-in-up delay-1">
+          <h4 style="margin-bottom:var(--space-lg);">Simulation Parameters</h4>
+          <form id="simForm" onsubmit="return false;">
+            <div class="flex flex-col gap-lg">
+
+              <div class="form-group">
+                <label class="form-label" for="targetJob">Target Job Title</label>
+                <input class="form-input" type="text" id="targetJob" value="Senior Frontend Developer">
+              </div>
+
+              <div class="grid grid-2 gap-md">
+                <div class="form-group">
+                  <label class="form-label" for="hoursPerWeek">Hours / Week</label>
+                  <input class="form-input" type="number" id="hoursPerWeek" value="15" min="1" max="80">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="targetIncome">Target Income ($)</label>
+                  <input class="form-input" type="number" id="targetIncome" value="95000" step="1000">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="timeframe">Timeframe (Months)</label>
+                <select class="form-input" id="timeframe">
+                  <option value="3">3 months</option>
+                  <option value="6" selected>6 months</option>
+                  <option value="12">12 months</option>
+                  <option value="18">18 months</option>
+                  <option value="24">24 months</option>
+                </select>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-full" onclick="runSimulation()">Run Simulation</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="result-panel animate-fade-in-up delay-2" id="resultsPanel">
+          <h4 style="margin-bottom:var(--space-xl);">Projected Results</h4>
+
+          <div class="grid grid-2 gap-lg" style="margin-bottom:var(--space-2xl);">
+            <div class="result-metric">
+              <div class="value" id="projSalary">$85,000</div>
+              <div class="label">Expected Salary</div>
+            </div>
+            <div class="result-metric">
+              <div class="value" id="projROI" style="color:var(--color-sage-dark);">340%</div>
+              <div class="label">Return on Time</div>
+            </div>
+            <div class="result-metric">
+              <div class="value" id="projHours">390</div>
+              <div class="label">Total Hours Needed</div>
+            </div>
+            <div class="result-metric">
+              <div class="value" id="projDifficulty" style="color:var(--color-gold-dark);">Medium</div>
+              <div class="label">Difficulty Level</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Skill Gap Visualization -->
+          <h5 style="margin-bottom:var(--space-lg);">Skill Gap Analysis</h5>
+          
+          <div id="skillGapChart">
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">React</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:90%;"></div>
+                <div class="skill-current" style="width:72%;"></div>
+              </div>
+              <div class="skill-gap-percent">72%</div>
+            </div>
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">TypeScript</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:85%;"></div>
+                <div class="skill-current" style="width:55%;"></div>
+              </div>
+              <div class="skill-gap-percent">55%</div>
+            </div>
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">System Design</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:80%;"></div>
+                <div class="skill-current" style="width:45%;"></div>
+              </div>
+              <div class="skill-gap-percent">45%</div>
+            </div>
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">Node.js</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:75%;"></div>
+                <div class="skill-current" style="width:60%;"></div>
+              </div>
+              <div class="skill-gap-percent">60%</div>
+            </div>
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">Testing</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:70%;"></div>
+                <div class="skill-current" style="width:28%;"></div>
+              </div>
+              <div class="skill-gap-percent">28%</div>
+            </div>
+            <div class="skill-gap-row">
+              <div class="skill-gap-label">CI/CD</div>
+              <div class="skill-gap-bars">
+                <div class="skill-required" style="width:65%;"></div>
+                <div class="skill-current" style="width:20%;"></div>
+              </div>
+              <div class="skill-gap-percent">20%</div>
+            </div>
+          </div>
+
+          <div style="margin-top:var(--space-xl);display:flex;gap:var(--space-md);">
+            <div class="flex items-center gap-sm text-xs text-muted">
+              <div style="width:12px;height:12px;border-radius:3px;background:linear-gradient(90deg,var(--color-sage),var(--color-sage-light));"></div>
+              Your Level
+            </div>
+            <div class="flex items-center gap-sm text-xs text-muted">
+              <div style="width:12px;height:12px;border-radius:3px;background:rgba(200,169,110,0.2);"></div>
+              Required Level
+            </div>
+          </div>
+
+          <div style="margin-top:var(--space-xl);">
+            <a href="roadmap.html" class="btn btn-sage w-full">Generate Learning Roadmap →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past Simulations -->
+      <div class="card animate-fade-in-up delay-3" style="margin-top:var(--space-2xl);">
+        <h4 style="margin-bottom:var(--space-lg);">Past Simulations</h4>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--color-champagne);text-align:left;">
+                <th style="padding:0.75rem 1rem;color:var(--color-light-text);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Target Job</th>
+                <th style="padding:0.75rem 1rem;color:var(--color-light-text);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Date</th>
+                <th style="padding:0.75rem 1rem;color:var(--color-light-text);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Expected Salary</th>
+                <th style="padding:0.75rem 1rem;color:var(--color-light-text);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">ROI</th>
+                <th style="padding:0.75rem 1rem;color:var(--color-light-text);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--color-champagne);">
+                <td style="padding:0.75rem 1rem;font-weight:500;">Senior Frontend Developer</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-slate);">Mar 24, 2026</td>
+                <td style="padding:0.75rem 1rem;">$85,000</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-sage-dark);font-weight:600;">340%</td>
+                <td style="padding:0.75rem 1rem;"><span class="badge badge-sage">Active</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--color-champagne);">
+                <td style="padding:0.75rem 1rem;font-weight:500;">Full Stack Engineer</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-slate);">Mar 18, 2026</td>
+                <td style="padding:0.75rem 1rem;">$78,000</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-sage-dark);font-weight:600;">280%</td>
+                <td style="padding:0.75rem 1rem;"><span class="badge badge-walnut">Completed</span></td>
+              </tr>
+              <tr>
+                <td style="padding:0.75rem 1rem;font-weight:500;">Data Analyst</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-slate);">Feb 10, 2026</td>
+                <td style="padding:0.75rem 1rem;">$65,000</td>
+                <td style="padding:0.75rem 1rem;color:var(--color-sage-dark);font-weight:600;">210%</td>
+                <td style="padding:0.75rem 1rem;"><span class="badge badge-walnut">Completed</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

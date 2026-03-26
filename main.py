@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import (
     auth, users, jobs, skills, simulation,
-    plan, tasks, ai, notifications
+    plan, tasks, ai, notifications, resources
 )
 
 app = FastAPI()
@@ -30,6 +30,7 @@ app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(resources.router, prefix="/api/resources", tags=["Resources"])
 
 @app.get("/")
 async def root():

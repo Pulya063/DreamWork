@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DreamWork Dashboard — track your skills, career simulations, and learning progress.">
+  <title>Dashboard — DreamWork</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== Top Bar ========== -->
+  <header class="topbar">
+    <a href="index.html" class="logo">Dream<span>Work</span></a>
+    <div class="flex items-center gap-md">
+      <span class="notif-badge" style="cursor:pointer;font-size:1.2rem;" title="Notifications">🔔</span>
+      <div class="flex items-center gap-sm">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--color-sage-light),var(--color-sage));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:0.85rem;">AS</div>
+        <span class="text-sm" style="font-weight:500;">Alexander S.</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout-dashboard">
+
+    <!-- ========== Sidebar ========== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link active">
+          <span class="icon">📊</span> Dashboard
+        </a>
+        <a href="simulation.html" class="sidebar-link">
+          <span class="icon">🧠</span> Simulation
+        </a>
+        <a href="roadmap.html" class="sidebar-link">
+          <span class="icon">🗺️</span> Roadmap
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Work</div>
+        <a href="#" class="sidebar-link">
+          <span class="icon">💼</span> Job Market
+        </a>
+        <a href="#" class="sidebar-link">
+          <span class="icon">⚡</span> Skills
+        </a>
+        <a href="#" class="sidebar-link">
+          <span class="icon">✅</span> Tasks
+        </a>
+        <a href="#" class="sidebar-link">
+          <span class="icon">📚</span> Resources
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Account</div>
+        <a href="#" class="sidebar-link">
+          <span class="icon">👤</span> Profile
+        </a>
+        <a href="#" class="sidebar-link">
+          <span class="icon">⚙️</span> Settings
+        </a>
+        <a href="#" class="sidebar-link notif-badge">
+          <span class="icon">🔔</span> Notifications
+        </a>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+
+      <div class="sidebar-section">
+        <a href="login.html" class="sidebar-link" style="color:var(--color-dusty-rose-dk);">
+          <span class="icon">🚪</span> Sign Out
+        </a>
+      </div>
+    </aside>
+
+    <!-- ========== Main Content ========== -->
+    <main class="main-content">
+
+      <!-- Page Header -->
+      <div class="page-header animate-fade-in-up">
+        <div class="breadcrumb">
+          <a href="#">Home</a> <span class="sep">/</span> <span>Dashboard</span>
+        </div>
+        <h1>Good evening, Alexander</h1>
+        <p>Here's a summary of your career journey so far.</p>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-4 gap-lg animate-fade-in-up delay-1" id="statCards">
+        <div class="stat-card gold">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-value">12</div>
+          <div class="stat-label">Skills Tracked</div>
+        </div>
+        <div class="stat-card sage">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">Simulations Run</div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">8 / 24</div>
+          <div class="stat-label">Tasks Completed</div>
+        </div>
+        <div class="stat-card walnut">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value">$85k</div>
+          <div class="stat-label">Projected Salary</div>
+        </div>
+      </div>
+
+      <!-- Two Column: Progress + Activity -->
+      <div class="grid grid-2 gap-xl" style="margin-top:var(--space-2xl);">
+
+        <!-- Current Goal Progress -->
+        <div class="card animate-fade-in-up delay-2">
+          <h4 style="margin-bottom:var(--space-lg);">Current Goal Progress</h4>
+          <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+            <span class="text-sm" style="font-weight:500;">Senior Frontend Developer</span>
+            <span class="badge badge-gold">In Progress</span>
+          </div>
+          <div class="progress-bar" style="margin-bottom:var(--space-lg);">
+            <div class="progress-fill gold" style="width:33%;"></div>
+          </div>
+
+          <div class="flex flex-col gap-md">
+            <div>
+              <div class="flex justify-between text-sm" style="margin-bottom:4px;">
+                <span class="text-muted">React & TypeScript</span>
+                <span style="font-weight:500;">72%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill sage" style="width:72%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm" style="margin-bottom:4px;">
+                <span class="text-muted">System Design</span>
+                <span style="font-weight:500;">45%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill sage" style="width:45%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm" style="margin-bottom:4px;">
+                <span class="text-muted">Node.js & APIs</span>
+                <span style="font-weight:500;">60%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill sage" style="width:60%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm" style="margin-bottom:4px;">
+                <span class="text-muted">Testing & CI/CD</span>
+                <span style="font-weight:500;">28%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill rose" style="width:28%;"></div></div>
+            </div>
+          </div>
+
+          <div style="margin-top:var(--space-lg);">
+            <a href="simulation.html" class="btn btn-ghost btn-sm">View Full Simulation →</a>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card animate-fade-in-up delay-3">
+          <h4 style="margin-bottom:var(--space-lg);">Recent Activity</h4>
+
+          <div class="activity-item">
+            <div class="activity-dot sage"></div>
+            <div class="activity-text">Completed task: <strong>"Build a REST API with Express"</strong></div>
+            <div class="activity-time">2h ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot gold"></div>
+            <div class="activity-text">Ran career simulation for <strong>Senior Frontend Developer</strong></div>
+            <div class="activity-time">5h ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot rose"></div>
+            <div class="activity-text">Deadline approaching: <strong>"TypeScript Advanced Patterns"</strong></div>
+            <div class="activity-time">1d ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot sage"></div>
+            <div class="activity-text">Added new skill: <strong>Docker (Level 2)</strong></div>
+            <div class="activity-time">2d ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot gold"></div>
+            <div class="activity-text">AI Advice: <strong>"Focus on system design interviews this week"</strong></div>
+            <div class="activity-time">3d ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-dot sage"></div>
+            <div class="activity-text">Completed course: <strong>"React Performance Optimization"</strong></div>
+            <div class="activity-time">4d ago</div>
+          </div>
+
+          <div style="margin-top:var(--space-lg);">
+            <a href="#" class="btn btn-ghost btn-sm">View All Activity →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card animate-fade-in-up delay-4" style="margin-top:var(--space-2xl);">
+        <h4 style="margin-bottom:var(--space-lg);">Quick Actions</h4>
+        <div class="flex flex-wrap gap-md">
+          <a href="simulation.html" class="btn btn-primary">🧠 New Simulation</a>
+          <a href="roadmap.html" class="btn btn-sage">🗺️ View Roadmap</a>
+          <a href="#" class="btn btn-secondary">💼 Browse Jobs</a>
+          <a href="#" class="btn btn-secondary">⚡ Update Skills</a>
+          <a href="#" class="btn btn-secondary">📚 Find Resources</a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

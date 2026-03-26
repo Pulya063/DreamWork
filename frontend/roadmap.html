@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DreamWork Learning Roadmap — your personalized timeline of tasks, resources, and milestones.">
+  <title>Learning Roadmap — DreamWork</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== Top Bar ========== -->
+  <header class="topbar">
+    <a href="index.html" class="logo">Dream<span>Work</span></a>
+    <div class="flex items-center gap-md">
+      <span class="notif-badge" style="cursor:pointer;font-size:1.2rem;">🔔</span>
+      <div class="flex items-center gap-sm">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--color-sage-light),var(--color-sage));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:0.85rem;">AS</div>
+        <span class="text-sm" style="font-weight:500;">Alexander S.</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout-dashboard">
+
+    <!-- ========== Sidebar ========== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <span class="icon">📊</span> Dashboard
+        </a>
+        <a href="simulation.html" class="sidebar-link">
+          <span class="icon">🧠</span> Simulation
+        </a>
+        <a href="roadmap.html" class="sidebar-link active">
+          <span class="icon">🗺️</span> Roadmap
+        </a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Work</div>
+        <a href="#" class="sidebar-link"><span class="icon">💼</span> Job Market</a>
+        <a href="#" class="sidebar-link"><span class="icon">⚡</span> Skills</a>
+        <a href="#" class="sidebar-link"><span class="icon">✅</span> Tasks</a>
+        <a href="#" class="sidebar-link"><span class="icon">📚</span> Resources</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Account</div>
+        <a href="#" class="sidebar-link"><span class="icon">👤</span> Profile</a>
+        <a href="#" class="sidebar-link"><span class="icon">⚙️</span> Settings</a>
+        <a href="#" class="sidebar-link notif-badge"><span class="icon">🔔</span> Notifications</a>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-section">
+        <a href="login.html" class="sidebar-link" style="color:var(--color-dusty-rose-dk);"><span class="icon">🚪</span> Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ========== Main Content ========== -->
+    <main class="main-content">
+
+      <!-- Page Header -->
+      <div class="page-header animate-fade-in-up">
+        <div class="breadcrumb">
+          <a href="dashboard.html">Dashboard</a> <span class="sep">/</span> <span>Roadmap</span>
+        </div>
+        <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:1rem;">
+          <div>
+            <h1>Learning Roadmap</h1>
+            <p>Your personalized path to <strong>Senior Frontend Developer</strong></p>
+          </div>
+          <div class="flex gap-md">
+            <span class="badge badge-sage">8 / 24 Tasks Done</span>
+            <span class="badge badge-gold">~6 Months Left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="card animate-fade-in-up delay-1" style="margin-bottom:var(--space-2xl);">
+        <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+          <h5>Overall Progress</h5>
+          <span style="font-weight:600;color:var(--color-walnut);">33%</span>
+        </div>
+        <div class="progress-bar" style="height:12px;">
+          <div class="progress-fill gold" style="width:33%;"></div>
+        </div>
+        <div class="flex justify-between text-xs text-muted" style="margin-top:var(--space-sm);">
+          <span>Started: Mar 1, 2026</span>
+          <span>Target: Sep 1, 2026</span>
+        </div>
+      </div>
+
+      <!-- Roadmap Timeline -->
+      <div class="grid grid-2 gap-xl">
+
+        <!-- Timeline -->
+        <div class="animate-fade-in-up delay-2">
+          <h4 style="margin-bottom:var(--space-lg);">Milestones</h4>
+
+          <div class="timeline">
+
+            <!-- Phase 1 — Completed -->
+            <div class="timeline-item completed">
+              <div class="timeline-content">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-sage">Completed</span>
+                  <span class="text-xs text-muted">Mar 1 – Mar 14</span>
+                </div>
+                <h5>Phase 1: JavaScript Fundamentals</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">ES6+, closures, promises, async/await, prototypal inheritance.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">4 Tasks</span>
+                  <span class="badge badge-sage">4 Done</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 2 — Completed -->
+            <div class="timeline-item completed">
+              <div class="timeline-content">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-sage">Completed</span>
+                  <span class="text-xs text-muted">Mar 15 – Mar 24</span>
+                </div>
+                <h5>Phase 2: React Core Concepts</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">Components, hooks, state management, React Router, context API.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">4 Tasks</span>
+                  <span class="badge badge-sage">4 Done</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 3 — Active -->
+            <div class="timeline-item active">
+              <div class="timeline-content" style="border-color:var(--color-gold);border-width:1.5px;">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-gold">In Progress</span>
+                  <span class="text-xs text-muted">Mar 25 – Apr 14</span>
+                </div>
+                <h5>Phase 3: TypeScript & Advanced Patterns</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">Generics, utility types, strict configuration, type-safe API patterns.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">6 Tasks</span>
+                  <span class="badge badge-rose">0 Done</span>
+                </div>
+                <div style="margin-top:var(--space-md);">
+                  <div class="progress-bar"><div class="progress-fill gold" style="width:0%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 4 — Upcoming -->
+            <div class="timeline-item">
+              <div class="timeline-content">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-walnut">Upcoming</span>
+                  <span class="text-xs text-muted">Apr 15 – May 15</span>
+                </div>
+                <h5>Phase 4: System Design & Architecture</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">Component architecture, state machines, micro-frontends, performance optimization.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">5 Tasks</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 5 — Upcoming -->
+            <div class="timeline-item">
+              <div class="timeline-content">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-walnut">Upcoming</span>
+                  <span class="text-xs text-muted">May 16 – Jun 30</span>
+                </div>
+                <h5>Phase 5: Testing, CI/CD & Node.js</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">Jest, Cypress, GitHub Actions, Docker basics, Express APIs.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">5 Tasks</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 6 — Upcoming -->
+            <div class="timeline-item">
+              <div class="timeline-content">
+                <div class="flex justify-between items-center" style="margin-bottom:var(--space-sm);">
+                  <span class="badge badge-walnut">Upcoming</span>
+                  <span class="text-xs text-muted">Jul 1 – Sep 1</span>
+                </div>
+                <h5>Phase 6: Portfolio & Interview Prep</h5>
+                <p class="text-sm text-muted" style="margin-top:var(--space-xs);">Build portfolio projects, mock interviews, resume optimization, networking.</p>
+                <div class="flex gap-sm" style="margin-top:var(--space-md);">
+                  <span class="badge badge-walnut">4 Tasks</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right: Current Tasks + Resources -->
+        <div>
+          <!-- Current Tasks -->
+          <div class="card animate-fade-in-up delay-3" style="margin-bottom:var(--space-xl);">
+            <div class="flex justify-between items-center" style="margin-bottom:var(--space-lg);">
+              <h4>Current Tasks</h4>
+              <span class="badge badge-gold">Phase 3</span>
+            </div>
+
+            <div class="flex flex-col gap-md" id="currentTasks">
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Learn TypeScript Generics</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Mar 28 · Est. 3h</div>
+                </div>
+                <span class="badge badge-rose">High</span>
+              </div>
+
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Utility Types Deep Dive</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Mar 30 · Est. 2h</div>
+                </div>
+                <span class="badge badge-gold">Medium</span>
+              </div>
+
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Configure Strict tsconfig</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Apr 2 · Est. 1h</div>
+                </div>
+                <span class="badge badge-sage">Low</span>
+              </div>
+
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Build Type-Safe API Client</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Apr 6 · Est. 4h</div>
+                </div>
+                <span class="badge badge-rose">High</span>
+              </div>
+
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Type Narrowing & Guards</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Apr 10 · Est. 2h</div>
+                </div>
+                <span class="badge badge-gold">Medium</span>
+              </div>
+
+              <div class="card-flat flex items-center gap-md" style="padding:1rem 1.25rem;">
+                <input type="checkbox" style="accent-color:var(--color-gold);width:18px;height:18px;">
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Phase 3 Review & Quiz</div>
+                  <div class="text-xs text-muted" style="margin-top:2px;">Due: Apr 14 · Est. 1.5h</div>
+                </div>
+                <span class="badge badge-sage">Low</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommended Resources -->
+          <div class="card animate-fade-in-up delay-4">
+            <h4 style="margin-bottom:var(--space-lg);">Recommended Resources</h4>
+
+            <div class="flex flex-col gap-md">
+              <a href="#" class="card-flat flex gap-md items-center" style="padding:1rem 1.25rem;text-decoration:none;color:inherit;">
+                <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(200,169,110,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">📺</div>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">TypeScript Full Course 2026</div>
+                  <div class="text-xs text-muted">YouTube · 4h 32min</div>
+                </div>
+                <span class="badge badge-gold">Video</span>
+              </a>
+
+              <a href="#" class="card-flat flex gap-md items-center" style="padding:1rem 1.25rem;text-decoration:none;color:inherit;">
+                <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(163,177,138,0.12);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">📖</div>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">TypeScript Handbook — Generics</div>
+                  <div class="text-xs text-muted">typescriptlang.org · 20min read</div>
+                </div>
+                <span class="badge badge-sage">Docs</span>
+              </a>
+
+              <a href="#" class="card-flat flex gap-md items-center" style="padding:1rem 1.25rem;text-decoration:none;color:inherit;">
+                <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(201,173,167,0.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">💬</div>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">r/typescript — Best practices thread</div>
+                  <div class="text-xs text-muted">Reddit · Community discussion</div>
+                </div>
+                <span class="badge badge-rose">Forum</span>
+              </a>
+
+              <a href="#" class="card-flat flex gap-md items-center" style="padding:1rem 1.25rem;text-decoration:none;color:inherit;">
+                <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(200,169,110,0.1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🎓</div>
+                <div style="flex:1;">
+                  <div style="font-weight:500;font-size:0.9rem;">Type-Level TypeScript</div>
+                  <div class="text-xs text-muted">type-level-typescript.com · Interactive course</div>
+                </div>
+                <span class="badge badge-gold">Course</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

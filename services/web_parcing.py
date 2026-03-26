@@ -12,7 +12,8 @@ async def get_html(url):
         print(f"Error fetching the URL: {e}")
         return None
 
-async def parse_job_listings(url):
+async def parse_job_listings(target_job: str):
+    url = f"https://www.work.ua/jobs-{target_job.lower().replace(' ', '+')}/"
     html = await get_html(url)
     
     if not html:
@@ -40,7 +41,7 @@ async def parse_job_listings(url):
         location_elem = job.find('span', class_="")
         location = location_elem.text.strip() if location_elem else 'No Location'
 
-        salary = 'On Interview'
+        salary = 0
         salary_span = job.find('span', class_='strong-600')
         if salary_span and "грн" in salary_span.text:
             salary = salary_span.text.replace('\u202f', '').replace('\u2009', '').replace('\xa0', '')
@@ -57,11 +58,9 @@ async def parse_job_listings(url):
 
     return job_listings
 
-if __name__ == "__main__":
-    # Add many websites and parse them
-    url = "https://www.work.ua/jobs-it/"
-    results = asyncio.run(parse_job_listings(url))
-    print(results)
+async def parse_youtube():
+    pass
 
-
+async def parse_stackoverflow():
+    pass
 

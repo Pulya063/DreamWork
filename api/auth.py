@@ -50,13 +50,13 @@ def create_token(data: dict, expires_delta: timedelta, token_type: str) -> str:
 
 # --- User Dependency ---
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: SessionDep) -> User:
-    """R
+    """
     Decodes the JWT token, validates it, and returns the current user.
     Raises HTTPException if the token is invalid, expired, or blacklisted.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Доступ заборонено",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -91,8 +91,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 @router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def register(user_data: UserRegister, db: SessionDep):
     # Check for existing user with the same email
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    if result.scalar_one_or_none():
+    db_user = await db.execute(select(User.email, User.username).where(User.email == user_data.email))
+    email, username = db_user.scalar_one_or_none()
+
+    if email or username:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     # Create new user and cart in a single transaction
@@ -120,12 +122,12 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
 
     # Create access and refresh tokens
     access_token = create_token(
-        data={"sub": user.email},
+        data={"sub": user.username},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         token_type="access"
     )
     refresh_token = create_token(
-        data={"sub": user.email},
+        data={"sub": user.username},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         token_type="refresh"
     )

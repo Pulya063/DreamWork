@@ -13,7 +13,7 @@ class Register(Base):
     last_name: str = Field(min_length=2, max_length=30)
     username: str = Field(min_length=3, max_length=20)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
     confirm_password: str = Field(min_length=8)
 
     @field_validator('confirm_password')
@@ -74,9 +74,14 @@ class SimulationResponse(Base):
     salary_growth: float
 
 
-class UserUpdate(UserResponse):
-    username: str = Field(min_length=3, max_length=50)
-    email: EmailStr
+class UserUpdate(Base):
+    first_name: Optional[str] = Field(default=None, min_length=2, max_length=30)
+    last_name: Optional[str] = Field(default=None, min_length=2, max_length=30)
+    username: Optional[str] = Field(default=None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = None
+    marital_status: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
 
 class AdviceRequest(Base):
     target_job: str = Field(min_length=2, examples=["Senior Frontend Developer"])
@@ -122,6 +127,12 @@ class TaskResponse(Task):
     created_at: datetime
     completed_at: Optional[datetime] = None
 
+class Hometask(Base):
+    completed: bool
+    confidence: int
+    feedback: str
+
+
 class PhaseBase(Base):
     name: str = Field(min_length=2)
     duration_weeks: int = Field(gt=0)
@@ -137,8 +148,7 @@ class Phase(PhaseBase):
 class AdviceRequest(BaseModel):
     target_job: str = Field(..., min_length=2, examples=["Senior Frontend Developer"])
     question: str = Field(
-        default="Що мені вивчити далі?",
-        examples=["Які навички найважливіші для цієї позиції?"],
+        default="Що мені вивчити далі?"
     )
 
 class PredictRequest(BaseModel):
@@ -148,9 +158,13 @@ class PredictRequest(BaseModel):
     n_missing_skills: int = Field(ge=0, examples=[3])
 
 
-class VerifyTaskRequest(BaseModel):
-    task_description: str = Field(..., min_length=5, examples=["Build a REST API with Express"])
-    user_report: str = Field(..., min_length=10, examples=["I built an Express server with CRUD endpoints and tested it with Postman"])
-
-
 PlanResponse.model_rebuild()
+
+
+class VerifyTaskRequest(Base):
+    task_description: str
+    user_request: str
+
+
+class TaskVerificationRequest(Base):
+    user_request: str = Field(min_length=1)

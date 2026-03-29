@@ -39,6 +39,21 @@ async def run_simulation(body: SimulationRequest, current_user: CurrentUser, db:
         "salary_growth": simulate_result["salary_growth"]
     }
 
+    stmt = await db.execute(select(Simulation).where(Simulation.user_id == current_user.id, Simulation.target_job == body.target_job))
+    existing_sim = stmt.scalar_one_or_none()
+
+    if existing_sim:
+        existing_sim.input_data = input_data
+        existing_sim.salary_growth = result_data["salary_growth"]
+        existing_sim.time_estimate = result_data["time_estimate"]
+        existing_sim.market_analysis = result_data["market_analysis"]
+        existing_sim.recommended_skills = result_data["recommended_skills"]
+        await db.commit()
+        await db.refresh(existing_sim)
+        return existing_sim
+
+
+
     sim = Simulation(
         user_id=current_user.id,
         target_job=body.target_job,

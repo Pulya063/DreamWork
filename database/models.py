@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Boolean, DateTime, Float, ForeignKey, JSON, Text, func
@@ -10,27 +10,34 @@ from database.db import Base
 class TokenBlackList(Base):
     __tablename__ = "token_blacklist"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
-    blacklisted_on: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    token: Mapped[str] = mapped_column(String)
+    token: Mapped[str] = mapped_column(String, index=True)
+
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String, unique=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
     username: Mapped[str] = mapped_column(String, unique=True)
     password: Mapped[str] = mapped_column(String)
 
     first_name: Mapped[str] = mapped_column(String)
     last_name: Mapped[str] = mapped_column(String)
 
-
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    age: Mapped[int] = mapped_column(Integer, nullable=True)
-    gender: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    marital_status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    age: Mapped[Optional[int]] = mapped_column(Integer)
+    gender: Mapped[Optional[str]] = mapped_column(String)
+    marital_status: Mapped[Optional[str]] = mapped_column(String)
+
+    # Relationships
+    skills: Mapped[List["Skill"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    simulations: Mapped[List["Simulation"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    job_profiles: Mapped[List["JobProfile"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    plans: Mapped[List["Plan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    tasks: Mapped[List["Task"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    notification_settings: Mapped["NotificationSetting"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class Skill(Base):
@@ -43,7 +50,8 @@ class Skill(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     simulation_id: Mapped[int] = mapped_column(ForeignKey("simulations.id"))
 
-    user = relationship("User", backref="skills")
+    user: Mapped["User"] = relationship(back_populates="skills")
+    simulation: Mapped["Simulation"] = relationship(back_populates="skills")
 
 
 class Simulation(Base):
@@ -59,13 +67,12 @@ class Simulation(Base):
     salary_growth: Mapped[float] = mapped_column(Float)
     recommended_skills: Mapped[list] = mapped_column(JSON, default=[])
 
-    # expected_income: Mapped[float] = mapped_column(Float)
-    # roi: Mapped[float] = mapped_column(Float)
-
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
-    user = relationship("User", backref="simulations")
-    skills = relationship("Skill", backref="simulations")
+    user: Mapped["User"] = relationship(back_populates="simulations")
+    skills: Mapped[List["Skill"]] = relationship(back_populates="simulation", cascade="all, delete-orphan")
+    plans: Mapped[List["Plan"]] = relationship(back_populates="simulation", cascade="all, delete-orphan")
+
 
 class JobProfile(Base):
     __tablename__ = "job_profiles"
@@ -76,7 +83,7 @@ class JobProfile(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
-    user = relationship("User", backref="job_profiles")
+    user: Mapped["User"] = relationship(back_populates="job_profiles")
 
 
 class Task(Base):
@@ -84,19 +91,20 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text)
 
     priority: Mapped[str] = mapped_column(String, default="medium")  # low, medium, high
-    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    phase_id: Mapped[int] = mapped_column(ForeignKey("phases.id"), nullable=True)
+    phase_id: Mapped[Optional[int]] = mapped_column(ForeignKey("phases.id"))
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    user = relationship("User", backref="tasks")
-    phase = relationship("Phase", back_populates="tasks")
+    user: Mapped["User"] = relationship(back_populates="tasks")
+    phase: Mapped["Phase"] = relationship(back_populates="tasks")
+
 
 class Phase(Base):
     __tablename__ = "phases"
@@ -109,8 +117,9 @@ class Phase(Base):
     resources: Mapped[list] = mapped_column(JSON, default=list)
 
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"))
-    plan = relationship("Plan", back_populates="phases")
-    tasks = relationship("Task", back_populates="phase", cascade="all, delete-orphan")
+
+    plan: Mapped["Plan"] = relationship(back_populates="phases")
+    tasks: Mapped[List["Task"]] = relationship(back_populates="phase", cascade="all, delete-orphan")
 
 
 class Plan(Base):
@@ -124,12 +133,13 @@ class Plan(Base):
     total_hours: Mapped[int] = mapped_column(Integer, default=0)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    simulation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("simulations.id"), nullable=True)
+    simulation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("simulations.id"))
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
-    user = relationship("User", backref="plans")
-    phases = relationship("Phase", back_populates="plan", cascade="all, delete-orphan")
+    user: Mapped["User"] = relationship(back_populates="plans")
+    simulation: Mapped[Optional["Simulation"]] = relationship(back_populates="plans")
+    phases: Mapped[List["Phase"]] = relationship(back_populates="plan", cascade="all, delete-orphan")
 
 
 class NotificationSetting(Base):
@@ -145,4 +155,4 @@ class NotificationSetting(Base):
 
     reminder_hours_before: Mapped[int] = mapped_column(Integer, default=24)
 
-    user = relationship("User", backref="notification_settings")
+    user: Mapped["User"] = relationship(back_populates="notification_settings")

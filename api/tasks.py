@@ -1,17 +1,18 @@
 """
 api/tasks.py
-Ендпоінти: GET /tasks, POST /tasks, PUT /tasks/{id}, DELETE /tasks/{id}
+Ендпоінти: GET /tasks, PUT /tasks/{id}/verify, DELETE /tasks/{id}
 """
 
 from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
+from api.ai import verify_task
+from api.auth import CurrentUser
 from database.db import SessionDep
 from database.models import Task
-from database.schemas import TaskCreate, VerifyTaskRequest, TaskResponse
-from api.auth import CurrentUser
-from api.ai import get_ai_response
+from database.schemas import Hometask, TaskResponse, TaskVerificationRequest, VerifyTaskRequest
 
 router = APIRouter()
 
@@ -25,49 +26,50 @@ async def get_tasks(current_user: CurrentUser, db: SessionDep):
         .order_by(Task.created_at.desc())
     )
     tasks = result.scalars().all()
-    # Map model DB fields (title) to the schema fields (name)
+
     return [
         TaskResponse(
             title=t.title,
-            description=t.description,
+            description=t.description or "",
             completed_at=t.completed_at,
             id=t.id,
             user_id=t.user_id,
             priority=t.priority,
             deadline=t.deadline,
             created_at=t.created_at,
-            phase_id = t.phase_id,
-        ) for t in tasks
+            phase_id=t.phase_id,
+        )
+        for t in tasks
     ]
 
 
-@router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_task(body: TaskCreate, current_user: CurrentUser, db: SessionDep):
-    """Створити нову задачу."""
-    task = Task(
-        title=body.title,
-        description=body.description,
-        priority=body.priority,
-        deadline=body.deadline,
-        phase_id=body.phase_id,
-        user_id=current_user.id,
+@router.put("/{id}/verify", response_model=Hometask)
+async def verify_task_endpoint(
+    id: int,
+    body: TaskVerificationRequest,
+    current_user: CurrentUser,
+    db: SessionDep,
+):
+    """Перевірити виконання задачі та оновити її статус."""
+    db_result = await db.execute(select(Task).where(Task.id == id, Task.user_id == current_user.id))
+    task = db_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Задачу не знайдено.")
+
+    verification = await verify_task(
+        VerifyTaskRequest(
+            task_description=task.description or task.title,
+            user_request=body.user_request,
+        )
     )
-    db.add(task)
-    await db.commit()
-    await db.refresh(task)
-    return task
 
-
-@router.put("/{id}", response_model=TaskResponse)
-async def check_task_response(id: int, body: VerifyTaskRequest, current_user: CurrentUser, db: SessionDep):
-    
-
-    update_data = body.model_dump(exclude_unset=True)
+    task.completed_at = datetime.now(timezone.utc) if verification.completed else None
 
     db.add(task)
     await db.commit()
-    await db.refresh(task)
-    return task
+
+    return verification
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)

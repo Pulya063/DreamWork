@@ -1,15 +1,18 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 import os
 from typing import Annotated
+from redis import Redis
 
-from fastapi import Depends, HTTPException, status, APIRouter, Body
+from fastapi import Depends, HTTPException, status, APIRouter, Response, Cookie
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from database.db import SessionDep
-from database.models import User, TokenBlackList
+from database.models import User, RefreshToken
 from database.schemas import UserRegister, UserResponse
 
 # --- Configuration ---
@@ -21,7 +24,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 if SECRET_KEY is None:
     raise ValueError("SECRET_KEY environment variable not set.")
 
-
+r = Redis(host='localhost', port=6379, db=0, decode_responses=True)
 router = APIRouter()
 
 # --- Security & Hashing ---
@@ -40,12 +43,21 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # --- Token Creation ---
-def create_token(data: dict, expires_delta: timedelta, token_type: str) -> str:
-    """Creates a JWT token."""
+def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire, "type": token_type})
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    jti = str(uuid.uuid4())  # унікальний ID для rotation
+    to_encode.update({"exp": expire, "type": "refresh", "jti": jti})
+    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    # зберігаємо в Redis з TTL
+    r.set(f"refresh:{jti}", data["sub"], ex=REFRESH_TOKEN_EXPIRE_DAYS*24*3600)
+    return token
 
 
 # --- User Dependency ---
@@ -60,31 +72,35 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Check if the token has been blacklisted (logged out)
-    result = await db.execute(select(TokenBlackList).where(TokenBlackList.token == token))
-    if result.scalar_one_or_none():
-        raise credentials_exception
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        username: str = payload.get("sub")
         token_type: str = payload.get("type")
-        if email is None or token_type != "access":
+
+        if username is None or token_type != "access":
             raise credentials_exception
-        token_data = email
+
     except JWTError:
         raise credentials_exception
 
     # Get user from database
-    result = await db.execute(select(User).where(User.email == token_data))
+    result = await db.execute(select(User).where(User.username == username)
+        .options(
+            selectinload(User.skills),
+            selectinload(User.simulations),
+            selectinload(User.job_profiles),
+            selectinload(User.plans),
+            selectinload(User.notification_settings)
+        ))
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
 
     return user
 
-
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
 
 
 # --- API Endpoints ---
@@ -92,9 +108,9 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 async def register(user_data: UserRegister, db: SessionDep):
     # Check for existing user with the same email
     db_user = await db.execute(select(User.email, User.username).where(User.email == user_data.email))
-    email, username = db_user.scalar_one_or_none()
+    user = db_user.first()
 
-    if email or username:
+    if user and (user.email or user.username):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     # Create new user and cart in a single transaction
@@ -105,11 +121,11 @@ async def register(user_data: UserRegister, db: SessionDep):
     await db.commit()
     await db.refresh(new_user)
 
-    return new_user
+    return None
 
 
 @router.post('/login')
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: SessionDep):
+async def login(response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: SessionDep):
     """Authenticates a user and returns access and refresh tokens."""
     result = await db.execute(select(User).where(User.username == form_data.username))
     user = result.scalar_one_or_none()
@@ -120,33 +136,32 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
             detail="Incorrect email or password",
         )
 
-    # Create access and refresh tokens
-    access_token = create_token(
-        data={"sub": user.username},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        token_type="access"
-    )
-    refresh_token = create_token(
-        data={"sub": user.username},
-        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        token_type="refresh"
+    access_token = create_access_token({"sub": user.username}, ACCESS_TOKEN_EXPIRE_MINUTES, "access")
+    refresh_token = create_refresh_token({"sub": user.username})
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
     )
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post('/logout', status_code=status.HTTP_204_NO_CONTENT)
-async def logout(token: Annotated[str, Depends(oauth2_scheme)], db: SessionDep, current_user: CurrentUser):
+async def logout(response: Response, current_user: CurrentUser, db: SessionDep, refresh_token: str = Cookie(None)):
     """Logs out the current user by blacklisting their access token."""
-    # Add the token to the blacklist
-    blacklisted_token = TokenBlackList(token=token)
-    db.add(blacklisted_token)
-
-    # Update the user's last logout time
+    if refresh_token:
+        try:
+            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+            jti = payload.get("jti")
+            r.delete(f"refresh:{jti}")
+        except JWTError:
+            pass
+    response.delete_cookie("refresh_token")
     current_user.last_logout_at = datetime.now(timezone.utc)
     db.add(current_user)
 
@@ -155,44 +170,41 @@ async def logout(token: Annotated[str, Depends(oauth2_scheme)], db: SessionDep, 
 
 
 @router.post("/refresh")
-async def refresh_token_endpoint(refresh_token: str, db: SessionDep):
-    """Issues a new set of tokens using a valid refresh token."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
+def refresh_token_endpoint(response: Response, refresh_token: str = Cookie(None)):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
 
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        token_type: str = payload.get("type")
-        if email is None or token_type != "refresh":
-            raise credentials_exception
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=403, detail="Invalid token type")
+        jti = payload.get("jti")
+        username = payload.get("sub")
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(status_code=403, detail="Invalid token")
 
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
-    if user is None:
-        raise credentials_exception
+    # перевірка в Redis
+    if not r.get(f"refresh:{jti}"):
+        raise HTTPException(status_code=403, detail="Refresh token expired or revoked")
 
-    # Issue a new pair of tokens
-    new_access_token = create_token(
-        data={"sub": user.email},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        token_type="access"
+    # ROTATION: видаляємо старий
+    r.delete(f"refresh:{jti}")
+
+    # генеруємо нові токени
+    access_token = create_access_token({"sub": username})
+    new_refresh_token = create_refresh_token({"sub": username})
+
+    # віддаємо новий refresh токен
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS*24*3600
     )
-    new_refresh_token = create_token(
-        data={"sub": user.email},
-        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        token_type="refresh"
-    )
 
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer"
-    }
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # @router.post('/change-password', status_code=status.HTTP_200_OK)

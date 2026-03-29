@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional, List, Annotated
+from typing import Any, Optional, List, Annotated
 from datetime import datetime
 from fastapi import Form
 
@@ -37,7 +37,7 @@ class UserResponse(Base):
 
 class Skill(Base):
     name: str
-    level: Optional[str]
+    level: Optional[str | int]
 
 class SimulationRequest(Base):
     age: Optional[int]
@@ -68,10 +68,14 @@ class MarketAnalysis(Base):
     description: str
 
 class SimulationResponse(Base):
+    id: int
+    target_job: str
+    input_data: dict[str, Any]
     recommended_skills: List[str]
     time_estimate: TimeEstimate
     market_analysis: MarketAnalysis
     salary_growth: float
+    created_at: datetime
 
 
 class UserUpdate(Base):
@@ -91,8 +95,7 @@ class AdviceRequest(Base):
     )
 
 class PlanGenerateRequest(Base):
-    target_job: str = Field(min_length=2)
-    hours_per_week: int
+    simulation_id: int = Field(gt=0)
 
 
 class PlanResponse(Base):
@@ -108,6 +111,14 @@ class PlanResponse(Base):
         if v <= 0:
             raise ValueError('Hours per week must be a positive integer')
         return v
+
+
+class PlanSummaryResponse(Base):
+    id: int
+    title: str
+    target_job: str
+    total_weeks: int
+    total_hours: int
 
 class Task(Base):
     title: str = Field(min_length=3, max_length=50)
@@ -168,3 +179,30 @@ class VerifyTaskRequest(Base):
 
 class TaskVerificationRequest(Base):
     user_request: str = Field(min_length=1)
+
+class DashboardStats(Base):
+    progress: int
+    due_soon_count: int
+    completed_tasks: int
+    total_tasks: int
+
+class DashboardResponse(Base):
+    current_plan: Optional[PlanResponse] = None
+    latest_simulation: Optional[SimulationResponse] = None
+    tasks: List[TaskResponse] = []
+    active_task: Optional[TaskResponse] = None
+    stats: DashboardStats
+
+
+class ProfileSummaryResponse(Base):
+    user: UserResponse
+    skills: List[Skill] = []
+    target_role: Optional[str] = None
+    latest_simulation: Optional[SimulationResponse] = None
+    latest_plan_summary: Optional[PlanSummaryResponse] = None
+
+
+class TaskVerificationResponse(Base):
+    verification: Hometask
+    updated_task: TaskResponse
+    dashboard: DashboardResponse

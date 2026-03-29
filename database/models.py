@@ -7,12 +7,14 @@ from sqlalchemy import String, Integer, Boolean, DateTime, Float, ForeignKey, JS
 from database.db import Base
 
 
-class TokenBlackList(Base):
-    __tablename__ = "token_blacklist"
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
-    token: Mapped[str] = mapped_column(String, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    hashed_token: Mapped[str] = mapped_column(String, index=True)
+    expired_at: Mapped[str] = mapped_column(String)
 
-
+    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
 
 class User(Base):
     __tablename__ = "users"
@@ -38,6 +40,7 @@ class User(Base):
     plans: Mapped[List["Plan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tasks: Mapped[List["Task"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     notification_settings: Mapped["NotificationSetting"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Skill(Base):

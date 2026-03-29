@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import auth, users, skills, simulation, plan, tasks, ai, notifications, resources
+from api import auth, users, skills, simulation, plan, tasks, ai, notifications, resources, dashboard
 
 app = FastAPI()
 
@@ -24,6 +24,7 @@ app.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
 app.include_router(simulation.router, prefix="/api/simulation", tags=["Simulation"])
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(resources.router, prefix="/api/resources", tags=["Resources"])

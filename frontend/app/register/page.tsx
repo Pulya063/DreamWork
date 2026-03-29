@@ -6,7 +6,9 @@ import { motion } from "motion/react";
 import { ArrowRight, Lock, Mail, User, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import AuthHeader from "@/components/AuthHeader";
 import PageTransition from "@/components/PageTransition";
+import SiteFooter from "@/components/SiteFooter";
 import { ApiError, registerUser } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 
@@ -76,9 +78,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf6f1] px-4 py-12">
+    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#faf6f1] px-4 pb-24 pt-28">
       <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[#c9ada7] opacity-20 blur-[100px]" />
       <div className="pointer-events-none absolute bottom-[-10%] left-[-10%] h-[400px] w-[400px] rounded-full bg-[#c8a96e] opacity-20 blur-[100px]" />
+      <AuthHeader />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -87,10 +90,7 @@ export default function RegisterPage() {
         className="relative z-10 w-full max-w-3xl rounded-3xl border border-[#e8dfd0]/50 bg-white/70 p-8 shadow-2xl backdrop-blur-xl"
       >
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-block text-3xl font-bold text-[#c8a96e]">
-            DreamWork
-          </Link>
-          <h2 className="mt-4 text-2xl font-bold text-[#2c2c2c]">Join DreamWork</h2>
+          <h2 className="text-2xl font-bold text-[#2c2c2c]">Join DreamWork</h2>
           <p className="mt-2 text-gray-500">Create your account and start your career journey.</p>
         </div>
 
@@ -213,6 +213,8 @@ export default function RegisterPage() {
           </Link>
         </div>
       </motion.div>
+
+      <SiteFooter className="absolute inset-x-0 bottom-0 z-10 border-t border-[#e8dfd0]/30 bg-white/30 backdrop-blur-md" />
     </PageTransition>
   );
 }

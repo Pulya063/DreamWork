@@ -6,29 +6,22 @@ import { ArrowRight, Calculator, Sparkles, TrendingUp, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, generatePlan, runSimulation } from "@/lib/api";
-import { getStoredSetupContext, getStoredSimulation, storeLastPlan, storeLastSimulation, storeSetupContext } from "@/lib/auth";
+import { ApiError, fetchLatestSimulation, generatePlan, runSimulation } from "@/lib/api";
 import type { SimulationResponse } from "@/types/api";
-
-const setupDefaults = getStoredSetupContext();
 
 export default function SimulationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autostartRequested = searchParams.get("autostart") === "1";
   const prefetchedJob = searchParams.get("job")?.trim() ?? "";
-  const initialTargetJob = prefetchedJob || setupDefaults?.targetJob || "";
-  const hasMatchingStoredResult = !prefetchedJob || prefetchedJob === setupDefaults?.targetJob;
-  const [targetJob, setTargetJob] = useState(initialTargetJob);
-  const [hoursPerWeek, setHoursPerWeek] = useState(setupDefaults?.hoursPerWeek ? String(setupDefaults.hoursPerWeek) : "");
-  const [currentIncome, setCurrentIncome] = useState(setupDefaults?.currentIncome ? String(setupDefaults.currentIncome) : "");
-  const [skillsText, setSkillsText] = useState(setupDefaults?.currentSkills.join(", ") ?? "");
+  const [targetJob, setTargetJob] = useState(prefetchedJob);
+  const [hoursPerWeek, setHoursPerWeek] = useState("");
+  const [currentIncome, setCurrentIncome] = useState("");
+  const [skillsText, setSkillsText] = useState("");
   const [isSimulating, setIsSimulating] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<SimulationResponse | null>(
-    hasMatchingStoredResult ? getStoredSimulation() : null,
-  );
+  const [results, setResults] = useState<SimulationResponse | null>(null);
   const autostartAttempted = useRef(false);
 
   const parsedSkills = skillsText
@@ -43,10 +36,37 @@ export default function SimulationPage() {
   }, [prefetchedJob]);
 
   useEffect(() => {
-    if (!hasMatchingStoredResult) {
-      setResults(null);
+    let cancelled = false;
+
+    async function loadLatestSimulation() {
+      try {
+        const latest = await fetchLatestSimulation();
+        if (cancelled) {
+          return;
+        }
+
+        if (prefetchedJob && latest.target_job !== prefetchedJob) {
+          return;
+        }
+
+        setResults(latest);
+        setTargetJob((current) => current || latest.target_job);
+        setHoursPerWeek((current) => current || String(latest.input_data.hours_per_week ?? ""));
+        setCurrentIncome((current) => current || String(latest.input_data.current_income ?? ""));
+        setSkillsText((current) => current || (latest.input_data.current_skills ?? []).join(", "));
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404) && err instanceof ApiError) {
+          setError(err.message);
+        }
+      }
     }
-  }, [hasMatchingStoredResult]);
+
+    void loadLatestSimulation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [prefetchedJob]);
 
   const runSimulationFlow = async () => {
     setError(null);
@@ -60,13 +80,6 @@ export default function SimulationPage() {
         current_income: Number(currentIncome),
       });
 
-      storeLastSimulation(response);
-      storeSetupContext({
-        targetJob: targetJob.trim(),
-        hoursPerWeek: Number(hoursPerWeek),
-        currentIncome: Number(currentIncome),
-        currentSkills: parsedSkills,
-      });
       setResults(response);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -98,16 +111,18 @@ export default function SimulationPage() {
   };
 
   const handleGenerateRoadmap = async () => {
+    if (!results) {
+      return;
+    }
+
     setError(null);
     setIsGeneratingPlan(true);
 
     try {
-      const plan = await generatePlan({
-        target_job: targetJob.trim(),
-        hours_per_week: Number(hoursPerWeek),
+      await generatePlan({
+        simulation_id: results.id,
       });
 
-      storeLastPlan(plan);
       router.push("/roadmap");
     } catch (err) {
       if (err instanceof ApiError) {
@@ -278,7 +293,7 @@ export default function SimulationPage() {
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm leading-relaxed text-white/80">
-                  If this simulation looks right, agree and we&apos;ll generate a personalized roadmap for you. If not, decline,
+                  If this simulation looks right, agree and we will generate a personalized roadmap for you. If not, decline,
                   adjust the inputs, and run the simulation again.
                 </p>
 

@@ -39,11 +39,22 @@ export interface MarketAnalysis {
   description: string;
 }
 
+export interface SimulationInputData {
+  target_job: string;
+  hours_per_week: number;
+  current_income: number;
+  current_skills: string[];
+}
+
 export interface SimulationResponse {
+  id: number;
+  target_job: string;
+  input_data: SimulationInputData;
   recommended_skills: string[];
   time_estimate: TimeEstimate;
   market_analysis: MarketAnalysis;
   salary_growth: number;
+  created_at: string;
 }
 
 export interface SimulationRequestPayload {
@@ -88,15 +99,43 @@ export interface PlanResponse {
   total_hours: number;
 }
 
-export interface PlanGeneratePayload {
+export interface PlanSummary {
+  id: number;
+  title: string;
   target_job: string;
-  hours_per_week: number;
+  total_weeks: number;
+  total_hours: number;
+}
+
+export interface PlanGeneratePayload {
+  simulation_id: number;
 }
 
 export interface VerifyTaskResult {
   completed: boolean;
   confidence: number;
   feedback: string;
+}
+
+export interface DashboardStats {
+  progress: number;
+  due_soon_count: number;
+  completed_tasks: number;
+  total_tasks: number;
+}
+
+export interface DashboardResponse {
+  current_plan: PlanResponse | null;
+  latest_simulation: SimulationResponse | null;
+  tasks: TaskItem[];
+  active_task: TaskItem | null;
+  stats: DashboardStats;
+}
+
+export interface VerifyTaskResponse {
+  verification: VerifyTaskResult;
+  updated_task: TaskItem;
+  dashboard: DashboardResponse;
 }
 
 export interface RegisterPayload {
@@ -110,12 +149,13 @@ export interface RegisterPayload {
 
 export interface SkillItem {
   name: string;
-  level?: string | null;
+  level?: string | number | null;
 }
 
-export interface SetupContext {
-  targetJob: string;
-  hoursPerWeek: number;
-  currentIncome: number;
-  currentSkills: string[];
+export interface ProfileSummaryResponse {
+  user: UserProfile;
+  skills: SkillItem[];
+  target_role?: string | null;
+  latest_simulation: SimulationResponse | null;
+  latest_plan_summary: PlanSummary | null;
 }

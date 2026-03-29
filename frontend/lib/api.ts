@@ -1,16 +1,16 @@
 import { getAccessToken } from "@/lib/auth";
 import type {
   AuthTokens,
+  DashboardResponse,
   PlanGeneratePayload,
   PlanResponse,
+  ProfileSummaryResponse,
   RegisterPayload,
   SimulationRequestPayload,
   SimulationResponse,
-  SkillItem,
-  TaskItem,
   UserProfile,
   UserUpdatePayload,
-  VerifyTaskResult,
+  VerifyTaskResponse,
 } from "@/types/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -105,8 +105,12 @@ export async function loginUser(username: string, password: string) {
   );
 }
 
-export async function fetchCurrentUser() {
-  return apiRequest<UserProfile>("/api/users/me", { method: "GET" }, true);
+export async function fetchDashboard() {
+  return apiRequest<DashboardResponse>("/api/dashboard/", { method: "GET" }, true);
+}
+
+export async function fetchProfileSummary() {
+  return apiRequest<ProfileSummaryResponse>("/api/users/me", { method: "GET" }, true);
 }
 
 export async function updateCurrentUser(payload: UserUpdatePayload) {
@@ -123,8 +127,12 @@ export async function updateCurrentUser(payload: UserUpdatePayload) {
   );
 }
 
-export async function fetchSkills() {
-  return apiRequest<SkillItem[]>("/api/skills/", { method: "GET" }, true);
+export async function fetchCurrentPlan() {
+  return apiRequest<PlanResponse>("/api/plan/current", { method: "GET" }, true);
+}
+
+export async function fetchLatestSimulation() {
+  return apiRequest<SimulationResponse>("/api/simulation/latest", { method: "GET" }, true);
 }
 
 export async function runSimulation(payload: SimulationRequestPayload) {
@@ -141,10 +149,6 @@ export async function runSimulation(payload: SimulationRequestPayload) {
   );
 }
 
-export async function fetchSimulations() {
-  return apiRequest<SimulationResponse[]>("/api/simulation/simulations", { method: "GET" }, true);
-}
-
 export async function generatePlan(payload: PlanGeneratePayload) {
   return apiRequest<PlanResponse>(
     "/api/plan/generate",
@@ -159,12 +163,8 @@ export async function generatePlan(payload: PlanGeneratePayload) {
   );
 }
 
-export async function fetchTasks() {
-  return apiRequest<TaskItem[]>("/api/tasks/", { method: "GET" }, true);
-}
-
 export async function verifyTaskSubmission(taskId: number, userRequest: string) {
-  return apiRequest<VerifyTaskResult>(
+  return apiRequest<VerifyTaskResponse>(
     `/api/tasks/${taskId}/verify`,
     {
       method: "PUT",

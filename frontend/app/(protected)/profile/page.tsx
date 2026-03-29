@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Award, Briefcase, Mail, User, UserRound, VenusAndMars } from "lucide-react";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchCurrentUser, fetchSkills, updateCurrentUser } from "@/lib/api";
-import { getStoredPlan, getStoredSetupContext, getStoredSimulation } from "@/lib/auth";
-import type { UserProfile } from "@/types/api";
+import { ApiError, fetchProfileSummary, updateCurrentUser } from "@/lib/api";
+import type { SimulationResponse, UserProfile } from "@/types/api";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -21,6 +20,8 @@ export default function ProfilePage() {
     marital_status: "",
   });
   const [skills, setSkills] = useState<string[]>([]);
+  const [targetRole, setTargetRole] = useState("Not set yet");
+  const [latestSimulation, setLatestSimulation] = useState<SimulationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,9 @@ export default function ProfilePage() {
       setError(null);
 
       try {
-        const [user, skillItems] = await Promise.all([fetchCurrentUser(), fetchSkills().catch(() => [])]);
+        const summary = await fetchProfileSummary();
+        const user = summary.user;
+
         setProfile(user);
         setFormState({
           first_name: user.first_name,
@@ -43,7 +46,9 @@ export default function ProfilePage() {
           gender: user.gender ?? "",
           marital_status: user.marital_status ?? "",
         });
-        setSkills(skillItems.map((item) => item.name));
+        setSkills(summary.skills.map((item) => item.name));
+        setTargetRole(summary.target_role ?? "Not set yet");
+        setLatestSimulation(summary.latest_simulation);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);
@@ -57,19 +62,6 @@ export default function ProfilePage() {
 
     void loadProfile();
   }, []);
-
-  const derivedSkills = useMemo(() => {
-    if (skills.length > 0) {
-      return skills;
-    }
-
-    const setupSkills = getStoredSetupContext()?.currentSkills ?? [];
-    const recommendedSkills = getStoredSimulation()?.recommended_skills ?? [];
-    return [...new Set([...setupSkills, ...recommendedSkills])];
-  }, [skills]);
-
-  const targetRole = getStoredPlan()?.target_job ?? getStoredSetupContext()?.targetJob ?? "Not set yet";
-  const latestSimulation = getStoredSimulation();
 
   const handleChange = (field: keyof typeof formState, value: string) => {
     setFormState((current) => ({ ...current, [field]: value }));
@@ -271,15 +263,17 @@ export default function ProfilePage() {
             <div className="mb-8 rounded-xl border border-[#a3b18a]/20 bg-[#a3b18a]/10 p-4">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#a3b18a]">Latest Forecast</label>
               <div className="font-semibold text-[#2c2c2c]">
-                {latestSimulation ? `${latestSimulation.salary_growth >= 0 ? "+" : ""}${latestSimulation.salary_growth.toFixed(1)}% salary growth` : "Run a simulation to see your forecast"}
+                {latestSimulation
+                  ? `${latestSimulation.salary_growth >= 0 ? "+" : ""}${latestSimulation.salary_growth.toFixed(1)}% salary growth`
+                  : "Run a simulation to see your forecast"}
               </div>
             </div>
 
             <div>
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wider text-gray-500">Current Skills</label>
               <div className="flex flex-wrap gap-2">
-                {derivedSkills.length > 0 ? (
-                  derivedSkills.map((skill) => (
+                {skills.length > 0 ? (
+                  skills.map((skill) => (
                     <span key={skill} className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm">
                       {skill}
                     </span>

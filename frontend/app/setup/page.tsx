@@ -6,8 +6,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, Briefcase, ChevronRight, Clock, Loader2, Target, TrendingUp } from "lucide-react";
 
 import PageTransition from "@/components/PageTransition";
+import SiteFooter from "@/components/SiteFooter";
 import { ApiError, generatePlan, runSimulation } from "@/lib/api";
-import { getAccessToken, storeLastPlan, storeLastSimulation, storeSetupContext } from "@/lib/auth";
+import { getAccessToken } from "@/lib/auth";
 import type { SimulationResponse } from "@/types/api";
 
 export default function SetupPage() {
@@ -19,7 +20,6 @@ export default function SetupPage() {
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SimulationResponse | null>(null);
-  const [queryString, setQueryString] = useState("");
   const [formData, setFormData] = useState({
     target_job: "",
     current_income: "",
@@ -33,7 +33,6 @@ export default function SetupPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const job = params.get("job");
-    setQueryString(params.toString());
 
     if (job) {
       setFormData((current) => ({ ...current, target_job: job }));
@@ -73,14 +72,6 @@ export default function SetupPage() {
         marital_status: formData.marital_status || undefined,
       });
 
-      storeLastSimulation(response);
-      storeSetupContext({
-        targetJob: formData.target_job.trim(),
-        hoursPerWeek: Number(formData.hours_per_week),
-        currentIncome: Number(formData.current_income),
-        currentSkills: normalizedSkills,
-      });
-
       setResults(response);
       setStep(2);
     } catch (err) {
@@ -95,17 +86,19 @@ export default function SetupPage() {
   };
 
   const handleContinue = async () => {
+    if (!results) {
+      return;
+    }
+
     setCreatingPlan(true);
     setError(null);
 
     try {
-      const plan = await generatePlan({
-        target_job: formData.target_job.trim(),
-        hours_per_week: Number(formData.hours_per_week),
+      await generatePlan({
+        simulation_id: results.id,
       });
 
-      storeLastPlan(plan);
-      router.push("/dashboard");
+      router.push("/roadmap");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -119,16 +112,17 @@ export default function SetupPage() {
 
   if (!authChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fdfbf7] px-6">
+      <div className="relative flex min-h-screen items-center justify-center bg-[#fdfbf7] px-6 pb-24">
         <div className="rounded-3xl border border-[#e8dfd0] bg-white/80 px-8 py-10 text-center shadow-xl backdrop-blur-xl">
           <p className="text-lg font-medium text-[#2c2c2c]">Preparing your setup...</p>
         </div>
+        <SiteFooter className="absolute inset-x-0 bottom-0 border-t border-[#e8dfd0]/30 bg-white/30 backdrop-blur-md" />
       </div>
     );
   }
 
   return (
-    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdfbf7] p-6">
+    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fdfbf7] p-6 pb-24">
       <div className="pointer-events-none absolute right-[-10%] top-[-20%] -z-10 h-[800px] w-[800px] rounded-full bg-[#e8dfd0] opacity-40 blur-[100px]" />
       <div className="pointer-events-none absolute bottom-[-10%] left-[-20%] -z-10 h-[600px] w-[600px] rounded-full bg-[#a3b18a] opacity-20 blur-[120px]" />
 
@@ -143,7 +137,7 @@ export default function SetupPage() {
               className="rounded-3xl border border-[#e8dfd0] bg-white/80 p-8 shadow-xl backdrop-blur-xl"
             >
               <h1 className="mb-2 text-3xl font-bold text-[#2c2c2c]">Tell us more about yourself</h1>
-              <p className="mb-8 text-gray-600">We&apos;ll use this to calculate your personalized career roadmap.</p>
+              <p className="mb-8 text-gray-600">We will use this to calculate your personalized career roadmap.</p>
 
               <div className="space-y-5">
                 <div>
@@ -282,9 +276,7 @@ export default function SetupPage() {
               </div>
 
               <h1 className="mb-2 text-center text-3xl font-bold text-[#2c2c2c]">AI Analysis Complete</h1>
-              <p className="mb-8 text-center text-gray-600">
-                Based on your profile and market data, here is your projection.
-              </p>
+              <p className="mb-8 text-center text-gray-600">Based on your profile and market data, here is your projection.</p>
 
               <div className="mb-8 space-y-4">
                 <div className="flex items-center justify-between rounded-2xl border border-[#c8a96e]/20 bg-[#c8a96e]/10 p-5">
@@ -295,7 +287,7 @@ export default function SetupPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-500">Projected Salary Growth</p>
                       <p className="text-2xl font-bold text-[#2c2c2c]">
-                        {results ? `${results.salary_growth >= 0 ? "+" : ""}${results.salary_growth.toFixed(1)}%` : "—"}
+                        {results ? `${results.salary_growth >= 0 ? "+" : ""}${results.salary_growth.toFixed(1)}%` : "-"}
                       </p>
                     </div>
                   </div>
@@ -308,9 +300,7 @@ export default function SetupPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">Estimated Study Time</p>
-                      <p className="text-2xl font-bold text-[#2c2c2c]">
-                        {results?.time_estimate.total_hours_needed} Hours
-                      </p>
+                      <p className="text-2xl font-bold text-[#2c2c2c]">{results?.time_estimate.total_hours_needed} Hours</p>
                     </div>
                   </div>
                 </div>
@@ -322,9 +312,7 @@ export default function SetupPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">Estimated Timeline</p>
-                      <p className="text-2xl font-bold text-[#2c2c2c]">
-                        {results?.time_estimate.total_weeks_needed} Weeks
-                      </p>
+                      <p className="text-2xl font-bold text-[#2c2c2c]">{results?.time_estimate.total_weeks_needed} Weeks</p>
                     </div>
                   </div>
                 </div>
@@ -361,6 +349,8 @@ export default function SetupPage() {
           )}
         </AnimatePresence>
       </div>
+
+      <SiteFooter className="absolute inset-x-0 bottom-0 z-10 border-t border-[#e8dfd0]/30 bg-white/30 backdrop-blur-md" />
     </PageTransition>
   );
 }

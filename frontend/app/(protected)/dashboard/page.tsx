@@ -6,9 +6,15 @@ import { AlertTriangle, Briefcase, Check, CheckCircle, Clock, Compass, Send, Tre
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchSimulations, fetchTasks, verifyTaskSubmission } from "@/lib/api";
-import { getStoredPlan, getStoredSimulation, storeLastSimulation } from "@/lib/auth";
-import type { PlanResponse, SimulationResponse, TaskItem, VerifyTaskResult } from "@/types/api";
+import { ApiError, fetchDashboard, verifyTaskSubmission } from "@/lib/api";
+import type { DashboardResponse, PlanResponse, SimulationResponse, TaskItem, VerifyTaskResult } from "@/types/api";
+
+const emptyStats = {
+  progress: 0,
+  due_soon_count: 0,
+  completed_tasks: 0,
+  total_tasks: 0,
+};
 
 function isDueSoon(task: TaskItem) {
   if (!task.deadline || task.completed_at) {
@@ -30,37 +36,41 @@ export default function DashboardPage() {
   const [feedback, setFeedback] = useState<VerifyTaskResult | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [simulation, setSimulation] = useState<SimulationResponse | null>(getStoredSimulation());
+  const [simulation, setSimulation] = useState<SimulationResponse | null>(null);
+  const [activeTask, setActiveTask] = useState<TaskItem | null>(null);
+  const [stats, setStats] = useState(emptyStats);
+
+  const applyDashboardData = useCallback((data: DashboardResponse) => {
+    setPlan(data.current_plan);
+    setSimulation(data.latest_simulation);
+    setTasks(data.tasks);
+    setActiveTask(data.active_task);
+    setStats(data.stats);
+  }, []);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const [taskData, simulationData] = await Promise.all([
-        fetchTasks(),
-        fetchSimulations().catch(() => [] as SimulationResponse[]),
-      ]);
-
-      if (simulationData[0]) {
-        storeLastSimulation(simulationData[0]);
-        setSimulation(simulationData[0]);
-      } else {
-        setSimulation(null);
-      }
-
-      setPlan(taskData.length > 0 ? getStoredPlan() : null);
-      setTasks(taskData);
+      const data = await fetchDashboard();
+      applyDashboardData(data);
     } catch (err) {
+      applyDashboardData({
+        current_plan: null,
+        latest_simulation: null,
+        tasks: [],
+        active_task: null,
+        stats: emptyStats,
+      });
+
       if (err instanceof ApiError) {
         setError(err.message);
-      } else {
-        setError("Unable to load your dashboard right now.");
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyDashboardData]);
 
   useEffect(() => {
     void loadDashboard();
@@ -68,43 +78,37 @@ export default function DashboardPage() {
 
   const completedTasks = useMemo(() => tasks.filter((task) => Boolean(task.completed_at)), [tasks]);
   const dueSoonTasks = useMemo(() => tasks.filter(isDueSoon), [tasks]);
-  const activeTask = useMemo(
-    () => dueSoonTasks[0] ?? tasks.find((task) => !task.completed_at) ?? null,
-    [dueSoonTasks, tasks],
-  );
 
   const phasesDone = useMemo(() => {
     if (!plan) {
       return 0;
     }
 
-    const taskState = new Map(tasks.map((task) => [task.id, task]));
-    return plan.phases.filter((phase) => {
-      if (phase.tasks.length === 0) {
-        return false;
-      }
+    return plan.phases.filter((phase) => phase.tasks.length > 0 && phase.tasks.every((task) => Boolean(task.completed_at))).length;
+  }, [plan]);
 
-      return phase.tasks.every((phaseTask) => Boolean(taskState.get(phaseTask.id)?.completed_at));
-    }).length;
-  }, [plan, tasks]);
+  const hasRoadmap = Boolean(plan) || tasks.length > 0;
+  const shouldShowSimulationCta = !loading && !hasRoadmap;
 
-  const progress = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
-  const hasOnboardingGap = !loading && !plan && !simulation && tasks.length === 0;
-  const needsPlanDecision = !loading && !plan && Boolean(simulation);
-
-  const stats = [
-    { name: "Overall Progress", value: `${progress}%`, icon: Briefcase, color: "text-[#c8a96e]", bg: "bg-[#c8a96e]/10" },
+  const statCards = [
+    { name: "Overall Progress", value: `${stats.progress}%`, icon: Briefcase, color: "text-[#c8a96e]", bg: "bg-[#c8a96e]/10" },
     {
       name: "Salary Growth",
-      value: simulation ? `${simulation.salary_growth >= 0 ? "+" : ""}${simulation.salary_growth.toFixed(1)}%` : "—",
+      value: simulation ? `${simulation.salary_growth >= 0 ? "+" : ""}${simulation.salary_growth.toFixed(1)}%` : "-",
       icon: TrendingUp,
       color: "text-[#a3b18a]",
       bg: "bg-[#a3b18a]/10",
     },
-    { name: "Tasks Due Soon", value: String(dueSoonTasks.length), icon: Clock, color: "text-[#c9ada7]", bg: "bg-[#c9ada7]/10" },
+    {
+      name: "Tasks Due Soon",
+      value: String(stats.due_soon_count),
+      icon: Clock,
+      color: "text-[#c9ada7]",
+      bg: "bg-[#c9ada7]/10",
+    },
     {
       name: "Phases Done",
-      value: plan ? `${phasesDone}/${plan.phases.length}` : "0/0",
+      value: plan ? `${phasesDone}/${plan.phases.length}` : tasks.length > 0 ? "Started" : "0/0",
       icon: CheckCircle,
       color: "text-[#2c2c2c]",
       bg: "bg-[#2c2c2c]/5",
@@ -122,9 +126,9 @@ export default function DashboardPage() {
 
     try {
       const result = await verifyTaskSubmission(activeTask.id, taskResponse.trim());
-      setFeedback(result);
+      setFeedback(result.verification);
       setTaskResponse("");
-      await loadDashboard();
+      applyDashboardData(result.dashboard);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -163,15 +167,18 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {hasOnboardingGap ? (
+      {shouldShowSimulationCta ? (
         <div className="rounded-3xl border border-[#c8a96e]/20 bg-[#c8a96e]/10 p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wider text-[#c8a96e]">Next Step</p>
-              <h2 className="mt-1 text-2xl font-bold text-[#2c2c2c]">Your dashboard is ready for the first simulation</h2>
+              <h2 className="mt-1 text-2xl font-bold text-[#2c2c2c]">
+                {simulation ? "Your roadmap is not created yet" : "Your dashboard is ready for the first simulation"}
+              </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
-                Open the Simulation tab, fill in your data, and press the Simulate button. We&apos;ll show the forecast first,
-                and only after your approval we&apos;ll build the roadmap.
+                {simulation
+                  ? "Open the Simulation tab to review the current result and create your roadmap from it."
+                  : "Open the Simulation tab, fill in your data, and press the Simulate button. We will show the forecast first, and only after your approval we will build the roadmap."}
               </p>
             </div>
 
@@ -179,35 +186,14 @@ export default function DashboardPage() {
               href="/simulation"
               className="inline-flex items-center justify-center rounded-2xl bg-[#2c2c2c] px-5 py-3 font-medium text-white transition-all hover:bg-black"
             >
-              Open Simulation
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      {needsPlanDecision ? (
-        <div className="rounded-3xl border border-[#a3b18a]/20 bg-[#a3b18a]/10 p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-[#a3b18a]">Simulation Ready</p>
-              <h2 className="mt-1 text-2xl font-bold text-[#2c2c2c]">Your forecast is available</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600">
-                Open the Simulation tab to review the result and choose whether you want to create a roadmap from it.
-              </p>
-            </div>
-
-            <Link
-              href="/simulation"
-              className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 font-medium text-[#35513c] shadow-sm transition-all hover:shadow-md"
-            >
-              Review Simulation
+              {simulation ? "Review Simulation" : "Open Simulation"}
             </Link>
           </div>
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
+        {statCards.map((stat, index) => (
           <motion.div
             key={stat.name}
             initial={{ opacity: 0, y: 20 }}
@@ -227,7 +213,7 @@ export default function DashboardPage() {
 
             {stat.name === "Overall Progress" ? (
               <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full rounded-full bg-[#c8a96e]" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-[#c8a96e]" style={{ width: `${stats.progress}%` }} />
               </div>
             ) : null}
           </motion.div>
@@ -239,12 +225,8 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 shadow-sm backdrop-blur-md">
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#a3b18a]">
-                  Current Task
-                </span>
-                <h2 className="text-xl font-semibold text-[#2c2c2c]">
-                  {activeTask ? activeTask.title : "No active task yet"}
-                </h2>
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#a3b18a]">Current Task</span>
+                <h2 className="text-xl font-semibold text-[#2c2c2c]">{activeTask ? activeTask.title : "No active task yet"}</h2>
               </div>
               {activeTask ? (
                 <span className="rounded-full bg-[#c9ada7]/10 px-3 py-1 text-xs font-semibold text-[#c9ada7]">
@@ -334,6 +316,14 @@ export default function DashboardPage() {
           {loading ? (
             <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 text-sm text-gray-500 shadow-sm">
               Loading your latest data...
+            </div>
+          ) : null}
+
+          {!loading && hasRoadmap ? (
+            <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 text-sm text-gray-500 shadow-sm">
+              {completedTasks.length > 0
+                ? `${completedTasks.length} tasks completed so far. Keep the momentum going.`
+                : "Your roadmap is ready. Start with the current task and submit the result here."}
             </div>
           ) : null}
         </div>

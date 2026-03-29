@@ -6,51 +6,76 @@ import { Bell, Calendar, CheckCircle, Circle, ExternalLink, PlayCircle } from "l
 import Link from "next/link";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchTasks } from "@/lib/api";
-import { getStoredPlan } from "@/lib/auth";
-import type { Phase, PlanResponse, TaskItem } from "@/types/api";
+import { ApiError, fetchCurrentPlan } from "@/lib/api";
+import type { Phase, PlanResponse } from "@/types/api";
 
-function getPhaseProgress(phase: Phase, tasks: TaskItem[]) {
+function isDueSoon(deadline?: string | null, completedAt?: string | null) {
+  if (!deadline || completedAt) {
+    return false;
+  }
+
+  const hours = (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60);
+  return hours >= 0 && hours <= 24;
+}
+
+function getPhaseProgress(phase: Phase) {
   if (phase.tasks.length === 0) {
     return 0;
   }
 
-  const completion = phase.tasks.filter((task) => Boolean(tasks.find((item) => item.id === task.id)?.completed_at));
-  return Math.round((completion.length / phase.tasks.length) * 100);
+  const completed = phase.tasks.filter((task) => Boolean(task.completed_at)).length;
+  return Math.round((completed / phase.tasks.length) * 100);
 }
 
 export default function RoadmapPage() {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchTasks()
-      .then((taskData) => {
-        setTasks(taskData);
-        setPlan(taskData.length > 0 ? getStoredPlan() : null);
-      })
-      .catch((err: unknown) => {
+    async function loadPlan() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const planData = await fetchCurrentPlan();
+        setPlan(planData);
+      } catch (err) {
         if (err instanceof ApiError) {
-          setError(err.message);
+          if (err.status === 404) {
+            setPlan(null);
+          } else {
+            setError(err.message);
+          }
         } else {
           setError("Unable to load roadmap tasks right now.");
         }
-      });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadPlan();
   }, []);
 
-  const dueSoonCount = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (!task.deadline || task.completed_at) {
-          return false;
-        }
+  const dueSoonCount = useMemo(() => {
+    if (!plan) {
+      return 0;
+    }
 
-        const hours = (new Date(task.deadline).getTime() - Date.now()) / (1000 * 60 * 60);
-        return hours >= 0 && hours <= 24;
-      }).length,
-    [tasks],
-  );
+    return plan.phases.flatMap((phase) => phase.tasks).filter((task) => isDueSoon(task.deadline, task.completed_at)).length;
+  }, [plan]);
+
+  if (loading) {
+    return (
+      <PageTransition className="mx-auto max-w-3xl space-y-6">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold tracking-tight text-[#2c2c2c]">Learning Roadmap</h1>
+          <p className="text-gray-600">Loading your latest roadmap...</p>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (!plan) {
     return (
@@ -60,7 +85,7 @@ export default function RoadmapPage() {
           <p className="text-gray-600">Your personalized path will appear here after you generate a plan.</p>
         </div>
         <div className="rounded-3xl border border-[#e8dfd0]/50 bg-white/70 p-8 text-center shadow-sm backdrop-blur-md">
-          <p className="mb-4 text-gray-600">No roadmap is stored yet. Run a simulation first, then approve roadmap creation.</p>
+          <p className="mb-4 text-gray-600">No roadmap is available yet. Run a simulation first, then approve roadmap creation.</p>
           <Link
             href="/simulation"
             className="inline-flex rounded-xl bg-[#c8a96e] px-5 py-3 font-medium text-white transition-all hover:bg-[#b59863]"
@@ -81,9 +106,7 @@ export default function RoadmapPage() {
         </div>
         <div className="relative cursor-pointer rounded-full border border-[#c8a96e]/20 bg-white/70 p-3 shadow-sm backdrop-blur-md transition-colors hover:bg-[#e8dfd0]">
           <Bell size={24} className="text-[#2c2c2c]" />
-          {dueSoonCount > 0 ? (
-            <span className="absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-white bg-[#d4183d]" />
-          ) : null}
+          {dueSoonCount > 0 ? <span className="absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-white bg-[#d4183d]" /> : null}
         </div>
       </div>
 
@@ -98,7 +121,7 @@ export default function RoadmapPage() {
 
         <div className="space-y-12">
           {plan.phases.map((phase, index) => {
-            const progress = getPhaseProgress(phase, tasks);
+            const progress = getPhaseProgress(phase);
             const isCompleted = progress === 100;
             const isInProgress = progress > 0 && progress < 100;
             const fallbackDate = `${phase.duration_weeks} weeks`;
@@ -162,20 +185,17 @@ export default function RoadmapPage() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Tasks</h3>
                       <ul className="space-y-3">
-                        {phase.tasks.map((task) => {
-                          const isTaskCompleted = Boolean(tasks.find((item) => item.id === task.id)?.completed_at);
-                          return (
-                            <li key={task.id} className="flex items-start gap-3">
-                              <div className={`mt-0.5 rounded-full p-0.5 ${isTaskCompleted ? "text-[#a3b18a]" : "text-[#c9ada7]"}`}>
-                                <CheckCircle size={16} />
-                              </div>
-                              <div>
-                                <p className="font-medium text-[#2c2c2c]">{task.title}</p>
-                                <p className="text-xs text-gray-500">{task.priority}</p>
-                              </div>
-                            </li>
-                          );
-                        })}
+                        {phase.tasks.map((task) => (
+                          <li key={task.id} className="flex items-start gap-3">
+                            <div className={`mt-0.5 rounded-full p-0.5 ${task.completed_at ? "text-[#a3b18a]" : "text-[#c9ada7]"}`}>
+                              <CheckCircle size={16} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-[#2c2c2c]">{task.title}</p>
+                              <p className="text-xs text-gray-500">{task.priority}</p>
+                            </div>
+                          </li>
+                        ))}
                       </ul>
                     </div>
 

@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import PageTransition from "@/components/PageTransition";
 import { getAccessToken } from "@/lib/auth";
+import SiteFooter from "@/components/SiteFooter";
 
 const features = [
   {
@@ -151,9 +152,7 @@ export default function HomePage() {
         </motion.div>
       </main>
 
-      <footer className="relative z-10 border-t border-[#e8dfd0]/30 py-8 text-center text-sm text-gray-500">
-        <p>&copy; 2026 DreamWork. Frontend build.</p>
-      </footer>
+      <SiteFooter className="relative z-10 border-t border-[#e8dfd0]/30" />
     </PageTransition>
   );
 }

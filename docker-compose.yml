@@ -1,14 +1,28 @@
 services:
-  web:
-    build: .
-    container_name: web-app
+  backend:
+    build: ./backend
+    container_name: web-backend
     restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://admin:pass@db:5432/dream_work
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=secret_password
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - redis
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    restart: always
     environment:
-      - DATABASE_URL=postgresql+asyncpg://admin:pass@localhost:5432/dream_work
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
 
   db:
     image: postgres:15-alpine
@@ -24,9 +38,9 @@ services:
   redis:
     image: "redis:alpine"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD", "redis-cli", "-a", "secret_password", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
-    ports:
-      - "6379:6379"
+    restart: always
+    command: redis-server --requirepass secret_password

@@ -1,6 +1,6 @@
 export interface AuthTokens {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   token_type: string;
 }
 
@@ -132,10 +132,15 @@ export interface DashboardResponse {
   stats: DashboardStats;
 }
 
+export interface TaskListResponse {
+  tasks: TaskItem[];
+  active_task: TaskItem | null;
+  stats: DashboardStats;
+}
+
 export interface VerifyTaskResponse {
   verification: VerifyTaskResult;
   updated_task: TaskItem;
-  dashboard: DashboardResponse;
 }
 
 export interface RegisterPayload {
@@ -158,4 +163,21 @@ export interface ProfileSummaryResponse {
   target_role?: string | null;
   latest_simulation: SimulationResponse | null;
   latest_plan_summary: PlanSummary | null;
+}
+
+export interface AdvicePayload {
+  target_job: string;
+  question: string;
+}
+
+export interface AdviceResponse {
+  advice?: string | string[];
+  answer?: string;
+  response?: string;
+  recommendations?: string[];
+}
+
+export interface ResourceSearchResponse {
+  target_job: string;
+  resources: string[] | null;
 }

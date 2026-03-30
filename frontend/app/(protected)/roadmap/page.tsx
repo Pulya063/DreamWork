@@ -6,7 +6,7 @@ import { Bell, Calendar, CheckCircle, Circle, ExternalLink, PlayCircle } from "l
 import Link from "next/link";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchCurrentPlan } from "@/lib/api";
+import { ApiError, fetchCurrentPlan, searchResources } from "@/lib/api";
 import type { Phase, PlanResponse } from "@/types/api";
 
 function isDueSoon(deadline?: string | null, completedAt?: string | null) {
@@ -29,6 +29,8 @@ function getPhaseProgress(phase: Phase) {
 
 export default function RoadmapPage() {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
+  const [resourceSuggestions, setResourceSuggestions] = useState<string[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,44 @@ export default function RoadmapPage() {
 
     return plan.phases.flatMap((phase) => phase.tasks).filter((task) => isDueSoon(task.deadline, task.completed_at)).length;
   }, [plan]);
+
+  useEffect(() => {
+    const targetJob = plan?.target_job;
+
+    if (!targetJob) {
+      setResourceSuggestions([]);
+      return;
+    }
+
+    const safeTargetJob = targetJob;
+
+    let cancelled = false;
+
+    async function loadResources() {
+      setLoadingResources(true);
+
+      try {
+        const result = await searchResources(safeTargetJob);
+        if (!cancelled) {
+          setResourceSuggestions(result.resources ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setResourceSuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingResources(false);
+        }
+      }
+    }
+
+    void loadResources();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [plan?.target_job]);
 
   if (loading) {
     return (
@@ -115,6 +155,28 @@ export default function RoadmapPage() {
           {error}
         </div>
       ) : null}
+
+      <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 shadow-sm backdrop-blur-md">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-[#2c2c2c]">Suggested Resources</h2>
+            <p className="mt-1 text-sm text-gray-500">Loaded separately from the resources endpoint for your target role.</p>
+          </div>
+          {loadingResources ? <span className="text-sm text-gray-400">Searching...</span> : null}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {resourceSuggestions.length > 0 ? (
+            resourceSuggestions.map((resource) => (
+              <span key={resource} className="rounded-lg border border-[#c8a96e]/20 bg-[#c8a96e]/10 px-3 py-2 text-sm text-[#7d6434]">
+                {resource}
+              </span>
+            ))
+          ) : (
+            <span className="text-sm text-gray-500">No extra resource suggestions returned yet.</span>
+          )}
+        </div>
+      </div>
 
       <div className="relative mt-12">
         <div className="absolute bottom-0 left-8 top-8 hidden w-1 rounded-full bg-gradient-to-b from-[#a3b18a] via-[#c8a96e] to-[#e8dfd0]/50 md:block" />

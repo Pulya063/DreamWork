@@ -76,7 +76,7 @@ async def personal_advice(
         select(Skill).where(Skill.user_id == current_user.id)
     )
     skills = result.scalars().all()
-    skill_list = ", ".join(f"{s.name} (рівень {s.level})" for s in skills) or "не вказані"
+    skill_list = ", ".join(f"{s.name}" for s in skills) or "не вказані"
 
     prompt = (
         f"Ти досвідчений кар'єрний консультант. Користувач: "

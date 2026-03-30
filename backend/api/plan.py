@@ -3,7 +3,6 @@ api/plan.py
 Endpoints: POST /plan/generate, GET /plan/current, GET /plan/{id}
 """
 
-import json
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
@@ -14,8 +13,6 @@ from backend.api.auth import CurrentUser
 from backend.database.db import SessionDep
 from backend.database.models import Plan, Phase, Simulation, Task
 from backend.database.schemas import PlanGenerateRequest, PlanResponse
-from backend.example_ai_responses import generate_plan as example_generate_plan
-from backend.services.user_snapshot import get_current_plan
 
 router = APIRouter()
 
@@ -182,9 +179,29 @@ async def generate_plan(body: PlanGenerateRequest, current_user: CurrentUser, db
     return result.scalar_one()
 
 
+def to_plan_summary(plan: Plan) -> PlanResponse:
+    return PlanResponse(
+        id=plan.id,
+        title=plan.title,
+        target_job=plan.target_job,
+        total_weeks=plan.total_weeks,
+        total_hours=plan.total_hours,
+    )
+
+
+async def fetch_latest_plan(user_id: int, db: SessionDep) -> Plan | None:
+    result = await db.execute(
+        select(Plan)
+        .options(selectinload(Plan.phases).selectinload(Phase.tasks))
+        .where(Plan.user_id == user_id)
+        .order_by(Plan.created_at.desc())
+    )
+    return result.scalars().first()
+
+
 @router.get("/current", response_model=PlanResponse)
 async def get_current_user_plan(current_user: CurrentUser, db: SessionDep):
-    plan = await get_current_plan(current_user.id, db)
+    plan = await fetch_latest_plan(current_user.id, db)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found.")
 

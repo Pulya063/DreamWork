@@ -1,13 +1,17 @@
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, getAuthSession, setAuthSession } from "@/lib/auth";
 import type {
+  AdvicePayload,
+  AdviceResponse,
   AuthTokens,
   DashboardResponse,
   PlanGeneratePayload,
   PlanResponse,
   ProfileSummaryResponse,
   RegisterPayload,
+  ResourceSearchResponse,
   SimulationRequestPayload,
   SimulationResponse,
+  TaskListResponse,
   UserProfile,
   UserUpdatePayload,
   VerifyTaskResponse,
@@ -47,6 +51,15 @@ async function readResponse<T>(response: Response): Promise<T> {
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}, authenticated = false) {
+  return apiRequestInternal<T>(path, init, authenticated, true);
+}
+
+async function apiRequestInternal<T>(
+  path: string,
+  init: RequestInit = {},
+  authenticated = false,
+  allowRefresh = true,
+) {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
 
@@ -63,9 +76,37 @@ async function apiRequest<T>(path: string, init: RequestInit = {}, authenticated
     ...init,
     headers,
     cache: "no-store",
+    credentials: "include",
   });
 
+  if (authenticated && response.status === 401 && allowRefresh) {
+    const refreshed = await refreshAccessToken();
+
+    if (refreshed) {
+      return apiRequestInternal<T>(path, init, authenticated, false);
+    }
+  }
+
   return readResponse<T>(response);
+}
+
+async function refreshAccessToken() {
+  try {
+    const currentSession = getAuthSession();
+    const refreshed = await apiRequestInternal<Partial<AuthTokens>>("/api/auth/refresh", { method: "POST" }, false, false);
+
+    if (refreshed.access_token) {
+      setAuthSession({
+        access_token: refreshed.access_token,
+        refresh_token: refreshed.refresh_token ?? currentSession?.refresh_token,
+        token_type: refreshed.token_type ?? currentSession?.token_type ?? "bearer",
+      });
+    }
+
+    return Boolean(refreshed.access_token);
+  } catch {
+    return false;
+  }
 }
 
 export async function registerUser(payload: RegisterPayload) {
@@ -105,12 +146,20 @@ export async function loginUser(username: string, password: string) {
   );
 }
 
+export async function logoutUser() {
+  return apiRequest<void>("/api/auth/logout", { method: "POST" }, true);
+}
+
 export async function fetchDashboard() {
   return apiRequest<DashboardResponse>("/api/dashboard/", { method: "GET" }, true);
 }
 
 export async function fetchProfileSummary() {
   return apiRequest<ProfileSummaryResponse>("/api/users/me", { method: "GET" }, true);
+}
+
+export async function fetchTaskList() {
+  return apiRequest<TaskListResponse>("/api/tasks/", { method: "GET" }, true);
 }
 
 export async function updateCurrentUser(payload: UserUpdatePayload) {
@@ -127,12 +176,24 @@ export async function updateCurrentUser(payload: UserUpdatePayload) {
   );
 }
 
+export async function deleteCurrentUser() {
+  return apiRequest<void>("/api/users/me", { method: "DELETE" }, true);
+}
+
 export async function fetchCurrentPlan() {
   return apiRequest<PlanResponse>("/api/plan/current", { method: "GET" }, true);
 }
 
 export async function fetchLatestSimulation() {
   return apiRequest<SimulationResponse>("/api/simulation/latest", { method: "GET" }, true);
+}
+
+export async function fetchSimulationHistory() {
+  return apiRequest<SimulationResponse[]>("/api/simulation/simulations", { method: "GET" }, true);
+}
+
+export async function fetchSimulationById(id: number) {
+  return apiRequest<SimulationResponse>(`/api/simulation/simulations/${id}`, { method: "GET" }, true);
 }
 
 export async function runSimulation(payload: SimulationRequestPayload) {
@@ -163,6 +224,10 @@ export async function generatePlan(payload: PlanGeneratePayload) {
   );
 }
 
+export async function deleteTask(taskId: number) {
+  return apiRequest<void>(`/api/tasks/${taskId}`, { method: "DELETE" }, true);
+}
+
 export async function verifyTaskSubmission(taskId: number, userRequest: string) {
   return apiRequest<VerifyTaskResponse>(
     `/api/tasks/${taskId}/verify`,
@@ -172,6 +237,30 @@ export async function verifyTaskSubmission(taskId: number, userRequest: string) 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ user_request: userRequest }),
+    },
+    true,
+  );
+}
+
+export async function requestAdvice(payload: AdvicePayload) {
+  return apiRequest<AdviceResponse>(
+    "/api/ai/advice",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
+}
+
+export async function searchResources(targetJob: string) {
+  return apiRequest<ResourceSearchResponse>(
+    `/api/resources/search?target_job=${encodeURIComponent(targetJob)}`,
+    {
+      method: "POST",
     },
     true,
   );

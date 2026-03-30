@@ -7,6 +7,7 @@ import { LayoutDashboard, Compass, Map as MapIcon, LogOut, Menu, User } from "lu
 import { useMemo, useState } from "react";
 
 import SiteFooter from "@/components/SiteFooter";
+import { logoutUser } from "@/lib/api";
 import { clearAuthSession } from "@/lib/auth";
 
 const navLinks = [
@@ -23,9 +24,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   const activePath = useMemo(() => pathname ?? "/dashboard", [pathname]);
 
-  const handleLogout = () => {
-    clearAuthSession();
-    router.replace("/login");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Clear the local session even if the backend cookie is already gone.
+    } finally {
+      clearAuthSession();
+      router.replace("/login");
+    }
   };
 
   return (

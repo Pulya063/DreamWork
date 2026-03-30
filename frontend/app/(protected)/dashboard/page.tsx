@@ -2,11 +2,20 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { AlertTriangle, Briefcase, Check, CheckCircle, Clock, Compass, Send, TrendingUp } from "lucide-react";
+import { AlertTriangle, Briefcase, Check, CheckCircle, Clock, Compass, Send, Sparkles, Trash2, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchDashboard, verifyTaskSubmission } from "@/lib/api";
+import {
+  ApiError,
+  deleteTask,
+  fetchCurrentPlan,
+  fetchDashboard,
+  fetchLatestSimulation,
+  fetchTaskList,
+  requestAdvice,
+  verifyTaskSubmission,
+} from "@/lib/api";
 import type { DashboardResponse, PlanResponse, SimulationResponse, TaskItem, VerifyTaskResult } from "@/types/api";
 
 const emptyStats = {
@@ -31,50 +40,78 @@ function isDueSoon(task: TaskItem) {
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
+  const [askingAdvice, setAskingAdvice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [taskResponse, setTaskResponse] = useState("");
   const [feedback, setFeedback] = useState<VerifyTaskResult | null>(null);
+  const [advice, setAdvice] = useState<string | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [simulation, setSimulation] = useState<SimulationResponse | null>(null);
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null);
   const [stats, setStats] = useState(emptyStats);
+  const [overview, setOverview] = useState<DashboardResponse | null>(null);
 
-  const applyDashboardData = useCallback((data: DashboardResponse) => {
-    setPlan(data.current_plan);
-    setSimulation(data.latest_simulation);
-    setTasks(data.tasks);
-    setActiveTask(data.active_task);
-    setStats(data.stats);
-  }, []);
-
-  const loadDashboard = useCallback(async () => {
+  const loadDashboardBlocks = useCallback(async () => {
     setLoading(true);
     setError(null);
+    let nextError: string | null = null;
 
-    try {
-      const data = await fetchDashboard();
-      applyDashboardData(data);
-    } catch (err) {
-      applyDashboardData({
-        current_plan: null,
-        latest_simulation: null,
-        tasks: [],
-        active_task: null,
-        stats: emptyStats,
-      });
+    const [dashboardResult, tasksResult, planResult, simulationResult] = await Promise.allSettled([
+      fetchDashboard(),
+      fetchTaskList(),
+      fetchCurrentPlan(),
+      fetchLatestSimulation(),
+    ]);
 
-      if (err instanceof ApiError) {
-        setError(err.message);
-      }
-    } finally {
-      setLoading(false);
+    if (dashboardResult.status === "fulfilled") {
+      setOverview(dashboardResult.value);
+    } else {
+      setOverview(null);
     }
-  }, [applyDashboardData]);
+
+    if (tasksResult.status === "fulfilled") {
+      setTasks(tasksResult.value.tasks);
+      setActiveTask(tasksResult.value.active_task);
+      setStats(tasksResult.value.stats);
+    } else {
+      setTasks([]);
+      setActiveTask(null);
+      setStats(emptyStats);
+
+      if (tasksResult.reason instanceof ApiError && tasksResult.reason.status !== 404) {
+        nextError = nextError ?? tasksResult.reason.message;
+      }
+    }
+
+    if (planResult.status === "fulfilled") {
+      setPlan(planResult.value);
+    } else {
+      setPlan(null);
+
+      if (planResult.reason instanceof ApiError && planResult.reason.status !== 404) {
+        nextError = nextError ?? planResult.reason.message;
+      }
+    }
+
+    if (simulationResult.status === "fulfilled") {
+      setSimulation(simulationResult.value);
+    } else {
+      setSimulation(null);
+
+      if (simulationResult.reason instanceof ApiError && simulationResult.reason.status !== 404) {
+        nextError = nextError ?? simulationResult.reason.message;
+      }
+    }
+
+    setError(nextError);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    void loadDashboardBlocks();
+  }, [loadDashboardBlocks]);
 
   const completedTasks = useMemo(() => tasks.filter((task) => Boolean(task.completed_at)), [tasks]);
   const dueSoonTasks = useMemo(() => tasks.filter(isDueSoon), [tasks]);
@@ -128,7 +165,7 @@ export default function DashboardPage() {
       const result = await verifyTaskSubmission(activeTask.id, taskResponse.trim());
       setFeedback(result.verification);
       setTaskResponse("");
-      applyDashboardData(result.dashboard);
+      await loadDashboardBlocks();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -140,12 +177,63 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: number) => {
+    setDeletingTaskId(taskId);
+    setError(null);
+
+    try {
+      await deleteTask(taskId);
+      if (activeTask?.id === taskId) {
+        setFeedback(null);
+        setTaskResponse("");
+      }
+      await loadDashboardBlocks();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to delete the task right now.");
+      }
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
+  const handleAskAdvice = async () => {
+    if (!simulation?.target_job) {
+      return;
+    }
+
+    setAskingAdvice(true);
+    setError(null);
+
+    try {
+      const result = await requestAdvice({
+        target_job: simulation.target_job,
+        question: activeTask
+          ? `What should I focus on next for the task "${activeTask.title}"?`
+          : `What should I focus on next to become a ${simulation.target_job}?`,
+      });
+
+      const normalizedAdvice = Array.isArray(result.advice) ? result.advice.join(" ") : result.advice;
+      setAdvice(normalizedAdvice ?? result.answer ?? result.response ?? "AI coach responded, but no text was returned.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to get AI advice right now.");
+      }
+    } finally {
+      setAskingAdvice(false);
+    }
+  };
+
   return (
     <PageTransition className="space-y-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="mb-2 text-3xl font-bold tracking-tight text-[#2c2c2c]">Your Learning Dashboard</h1>
-          <p className="text-gray-600">Track your progress and complete your tasks.</p>
+          <p className="text-gray-600">Each block is synced with its own backend source so your progress stays consistent.</p>
         </div>
 
         <div className="flex max-w-sm items-start gap-3 rounded-xl border border-[#c9ada7]/30 bg-[#c9ada7]/10 p-4">
@@ -164,6 +252,16 @@ export default function DashboardPage() {
       {error ? (
         <div className="rounded-2xl border border-[#d4183d]/20 bg-[#d4183d]/10 px-4 py-3 text-sm text-[#b11230]">
           {error}
+        </div>
+      ) : null}
+
+      {overview ? (
+        <div className="rounded-3xl border border-[#2c2c2c]/10 bg-white/70 p-6 shadow-sm backdrop-blur-md">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#a3b18a]">Overview Snapshot</p>
+          <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+            <span>Dashboard endpoint confirms {overview.stats.completed_tasks} completed tasks.</span>
+            <span>{overview.current_plan ? `Current plan: ${overview.current_plan.title}` : "No plan created yet."}</span>
+          </div>
         </div>
       ) : null}
 
@@ -223,15 +321,26 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 shadow-sm backdrop-blur-md">
-            <div className="mb-6 flex items-start justify-between">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#a3b18a]">Current Task</span>
                 <h2 className="text-xl font-semibold text-[#2c2c2c]">{activeTask ? activeTask.title : "No active task yet"}</h2>
               </div>
               {activeTask ? (
-                <span className="rounded-full bg-[#c9ada7]/10 px-3 py-1 text-xs font-semibold text-[#c9ada7]">
-                  {isDueSoon(activeTask) ? "Due Soon" : activeTask.priority}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#c9ada7]/10 px-3 py-1 text-xs font-semibold text-[#c9ada7]">
+                    {isDueSoon(activeTask) ? "Due Soon" : activeTask.priority}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteTask(activeTask.id)}
+                    disabled={deletingTaskId === activeTask.id}
+                    className="rounded-full border border-[#d4183d]/20 bg-[#d4183d]/10 p-2 text-[#b11230] transition hover:bg-[#d4183d]/20 disabled:opacity-60"
+                    aria-label="Delete active task"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               ) : null}
             </div>
 
@@ -261,27 +370,78 @@ export default function DashboardPage() {
                   className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-[#c8a96e] focus:ring-2 focus:ring-[#c8a96e]/20"
                   required
                 />
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium shadow-sm transition-all ${
-                    submitting ? "bg-[#a3b18a] text-white" : "bg-[#2c2c2c] text-white hover:bg-black"
-                  }`}
-                >
-                  {submitting ? (
-                    <>
-                      <Check size={18} />
-                      Verifying Submission...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={18} />
-                      Submit Task Response
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium shadow-sm transition-all ${
+                      submitting ? "bg-[#a3b18a] text-white" : "bg-[#2c2c2c] text-white hover:bg-black"
+                    }`}
+                  >
+                    {submitting ? (
+                      <>
+                        <Check size={18} />
+                        Verifying Submission...
+                      </>
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        Submit Task Response
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAskAdvice()}
+                    disabled={askingAdvice || !simulation?.target_job}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#c8a96e]/30 bg-[#c8a96e]/10 py-3 font-medium text-[#7d6434] transition hover:bg-[#c8a96e]/20 disabled:opacity-60"
+                  >
+                    <Sparkles size={18} />
+                    {askingAdvice ? "Asking AI..." : "Ask AI Coach"}
+                  </button>
+                </div>
               </form>
             ) : null}
+
+            {advice ? (
+              <div className="mt-5 rounded-xl border border-[#c8a96e]/20 bg-[#faf6f1] px-4 py-3 text-sm text-gray-700">
+                <p className="font-semibold text-[#2c2c2c]">AI Coach</p>
+                <p className="mt-1">{advice}</p>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-6 shadow-sm backdrop-blur-md">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-[#2c2c2c]">Task Queue</h2>
+              <span className="text-sm text-gray-500">{tasks.length} total</span>
+            </div>
+
+            <div className="space-y-3">
+              {tasks.length > 0 ? (
+                tasks.slice(0, 6).map((task) => (
+                  <div key={task.id} className="flex items-start justify-between gap-3 rounded-xl border border-[#e8dfd0]/50 bg-[#faf6f1] p-4">
+                    <div>
+                      <p className="font-medium text-[#2c2c2c]">{task.title}</p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {task.completed_at ? "Completed" : task.deadline ? `Deadline: ${new Date(task.deadline).toLocaleDateString()}` : "No deadline"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteTask(task.id)}
+                      disabled={deletingTaskId === task.id}
+                      className="rounded-full border border-[#d4183d]/20 bg-white p-2 text-[#b11230] transition hover:bg-[#d4183d]/10 disabled:opacity-60"
+                      aria-label={`Delete ${task.title}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Your task list will appear here after roadmap generation.</p>
+              )}
+            </div>
           </div>
         </div>
 

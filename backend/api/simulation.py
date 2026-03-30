@@ -2,7 +2,7 @@
 api/simulation.py
 Endpoints: POST /simulate, GET /latest, GET /simulations, GET /simulations/{id}
 """
-
+import httpx
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
@@ -14,6 +14,15 @@ from backend.services.simulator import Simulator
 
 router = APIRouter()
 simulator = Simulator()
+
+
+async def fetch_latest_simulation(user_id: int, db: SessionDep) -> Simulation | None:
+    result = await db.execute(
+        select(Simulation)
+        .where(Simulation.user_id == user_id)
+        .order_by(Simulation.created_at.desc())
+    )
+    return result.scalars().first()
 
 
 @router.post("/simulate", response_model=SimulationResponse)
@@ -28,6 +37,7 @@ async def run_simulation(body: SimulationRequest, current_user: CurrentUser, db:
     target_job = JobProfile(
         target_job=body.target_job,
         target_salary=body.current_income,
+        user_id=current_user.id,
     )
 
     simulate_result = await simulator.run(input_data)
@@ -60,6 +70,7 @@ async def run_simulation(body: SimulationRequest, current_user: CurrentUser, db:
         recommended_skills=simulate_result["recommended_skills"],
     )
 
+    db.add(target_job)
     db.add(simulation)
     await db.commit()
     await db.refresh(simulation)
@@ -67,18 +78,12 @@ async def run_simulation(body: SimulationRequest, current_user: CurrentUser, db:
 
 
 @router.get("/latest", response_model=SimulationResponse)
-async def get_latest_simulation(current_user: CurrentUser, db: SessionDep):
-    result = await db.execute(
-        select(Simulation)
-        .where(Simulation.user_id == current_user.id)
-        .order_by(Simulation.created_at.desc())
-    )
-    simulation = result.scalars().first()
-
+async def get_latest_simulation(current_user: CurrentUser, db: SessionDep) -> Simulation:
+    simulation = await fetch_latest_simulation(current_user.id, db)
     if not simulation:
         raise HTTPException(status_code=404, detail="Simulation not found.")
-
     return simulation
+
 
 
 @router.get("/simulations", response_model=list[SimulationResponse])
@@ -107,6 +112,6 @@ async def get_simulation(id: int, current_user: CurrentUser, db: SessionDep):
     return simulation
 
 
-@router.post("/simulate/advanced")
-async def run_advanced_simulation():
-    return None
+# @router.post("/simulate/advanced")
+# async def run_advanced_simulation():
+#     return None

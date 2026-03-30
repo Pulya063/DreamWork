@@ -111,14 +111,6 @@ class PlanResponse(Base):
             raise ValueError('Hours per week must be a positive integer')
         return v
 
-
-class PlanSummaryResponse(Base):
-    id: int
-    title: str
-    target_job: str
-    total_weeks: int
-    total_hours: int
-
 class Task(Base):
     title: str = Field(min_length=3, max_length=50)
     description: str = Field(min_length=30, max_length=500)
@@ -198,10 +190,20 @@ class ProfileSummaryResponse(Base):
     skills: List[Skill] = []
     target_role: Optional[str] = None
     latest_simulation: Optional[SimulationResponse] = None
-    latest_plan_summary: Optional[PlanSummaryResponse] = None
+    latest_plan_summary: Optional[PlanResponse] = None
 
 
 class TaskVerificationResponse(Base):
     verification: Hometask
     updated_task: TaskResponse
-    dashboard: DashboardResponse
+
+class TaskStats(Base):
+    progress: int
+    due_soon_count: int
+    completed_tasks: int
+    total_tasks: int
+
+class TaskListResponse(Base):
+    tasks: List[TaskResponse]
+    active_task: Optional[TaskResponse] = None
+    stats: TaskStats

@@ -1,14 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Award, Briefcase, Mail, User, UserRound, VenusAndMars } from "lucide-react";
+import { Award, Briefcase, Mail, Trash2, User, UserRound, VenusAndMars } from "lucide-react";
 
 import PageTransition from "@/components/PageTransition";
-import { ApiError, fetchProfileSummary, updateCurrentUser } from "@/lib/api";
+import {
+  ApiError,
+  deleteCurrentUser,
+  fetchProfileSummary,
+  fetchSimulationById,
+  fetchSimulationHistory,
+  updateCurrentUser,
+} from "@/lib/api";
+import { clearAuthSession } from "@/lib/auth";
 import type { SimulationResponse, UserProfile } from "@/types/api";
 
+function getUniqueSkills(skills: string[]) {
+  return Array.from(new Set(skills.map((skill) => skill.trim()).filter(Boolean)));
+}
+
 export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [formState, setFormState] = useState({
     first_name: "",
@@ -21,9 +35,11 @@ export default function ProfilePage() {
   });
   const [skills, setSkills] = useState<string[]>([]);
   const [targetRole, setTargetRole] = useState("Not set yet");
-  const [latestSimulation, setLatestSimulation] = useState<SimulationResponse | null>(null);
+  const [selectedSimulation, setSelectedSimulation] = useState<SimulationResponse | null>(null);
+  const [simulationHistory, setSimulationHistory] = useState<SimulationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -32,8 +48,13 @@ export default function ProfilePage() {
       setLoading(true);
       setError(null);
 
-      try {
-        const summary = await fetchProfileSummary();
+      const [summaryResult, simulationsResult] = await Promise.allSettled([
+        fetchProfileSummary(),
+        fetchSimulationHistory(),
+      ]);
+
+      if (summaryResult.status === "fulfilled") {
+        const summary = summaryResult.value;
         const user = summary.user;
 
         setProfile(user);
@@ -46,18 +67,22 @@ export default function ProfilePage() {
           gender: user.gender ?? "",
           marital_status: user.marital_status ?? "",
         });
-        setSkills(summary.skills.map((item) => item.name));
+        setSkills(getUniqueSkills(summary.skills.map((item) => item.name)));
         setTargetRole(summary.target_role ?? "Not set yet");
-        setLatestSimulation(summary.latest_simulation);
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Unable to load your profile right now.");
-        }
-      } finally {
-        setLoading(false);
+        setSelectedSimulation(summary.latest_simulation);
+      } else if (summaryResult.reason instanceof ApiError) {
+        setError(summaryResult.reason.message);
+      } else {
+        setError("Unable to load your profile right now.");
       }
+
+      if (simulationsResult.status === "fulfilled") {
+        setSimulationHistory(simulationsResult.value);
+      } else if (simulationsResult.reason instanceof ApiError && simulationsResult.reason.status !== 404) {
+        setError((current) => current ?? simulationsResult.reason.message);
+      }
+
+      setLoading(false);
     }
 
     void loadProfile();
@@ -97,11 +122,45 @@ export default function ProfilePage() {
     }
   };
 
+  const handleOpenSimulation = async (simulationId: number) => {
+    setError(null);
+
+    try {
+      const result = await fetchSimulationById(simulationId);
+      setSelectedSimulation(result);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to load that simulation right now.");
+      }
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setError(null);
+
+    try {
+      await deleteCurrentUser();
+      clearAuthSession();
+      router.replace("/register");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to delete your account right now.");
+      }
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   return (
-    <PageTransition className="mx-auto max-w-5xl space-y-8">
+    <PageTransition className="mx-auto max-w-6xl space-y-8">
       <div>
         <h1 className="mb-2 text-3xl font-bold tracking-tight text-[#2c2c2c]">User Profile</h1>
-        <p className="text-gray-600">Manage your personal information and career goals.</p>
+        <p className="text-gray-600">Manage your personal information, review your simulations, and control your account.</p>
       </div>
 
       {error ? (
@@ -116,8 +175,8 @@ export default function ProfilePage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-        <div className="space-y-6 md:col-span-1">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-1">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -135,9 +194,28 @@ export default function ProfilePage() {
               Career Builder
             </div>
           </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="rounded-2xl border border-[#d4183d]/15 bg-white/70 p-6 shadow-sm backdrop-blur-md"
+          >
+            <h3 className="text-lg font-semibold text-[#2c2c2c]">Danger Zone</h3>
+            <p className="mt-2 text-sm text-gray-500">If you delete your account, your profile and roadmap access will be removed for this user.</p>
+            <button
+              type="button"
+              onClick={() => void handleDeleteAccount()}
+              disabled={deletingAccount || loading}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#b11230] px-5 py-3 font-medium text-white transition hover:bg-[#951029] disabled:opacity-70"
+            >
+              <Trash2 size={16} />
+              {deletingAccount ? "Deleting Account..." : "Delete Account"}
+            </button>
+          </motion.div>
         </div>
 
-        <div className="space-y-6 md:col-span-2">
+        <div className="space-y-6 xl:col-span-2">
           <motion.form
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -261,10 +339,10 @@ export default function ProfilePage() {
             </div>
 
             <div className="mb-8 rounded-xl border border-[#a3b18a]/20 bg-[#a3b18a]/10 p-4">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#a3b18a]">Latest Forecast</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#a3b18a]">Selected Forecast</label>
               <div className="font-semibold text-[#2c2c2c]">
-                {latestSimulation
-                  ? `${latestSimulation.salary_growth >= 0 ? "+" : ""}${latestSimulation.salary_growth.toFixed(1)}% salary growth`
+                {selectedSimulation
+                  ? `${selectedSimulation.target_job}: ${selectedSimulation.salary_growth >= 0 ? "+" : ""}${selectedSimulation.salary_growth.toFixed(1)}% salary growth`
                   : "Run a simulation to see your forecast"}
               </div>
             </div>
@@ -273,13 +351,79 @@ export default function ProfilePage() {
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wider text-gray-500">Current Skills</label>
               <div className="flex flex-wrap gap-2">
                 {skills.length > 0 ? (
-                  skills.map((skill) => (
-                    <span key={skill} className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm">
+                  skills.map((skill, index) => (
+                    <span
+                      key={`${skill}-${index}`}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm"
+                    >
                       {skill}
                     </span>
                   ))
                 ) : (
                   <span className="text-sm text-gray-500">No skills recorded yet.</span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="rounded-2xl border border-[#e8dfd0]/50 bg-white/70 p-8 shadow-sm backdrop-blur-md"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#2c2c2c]">Simulation History</h3>
+              <span className="text-sm text-gray-500">{simulationHistory.length} records</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
+              <div className="space-y-3">
+                {simulationHistory.length > 0 ? (
+                  simulationHistory.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => void handleOpenSimulation(item.id)}
+                      className={`w-full rounded-xl border p-4 text-left transition ${
+                        selectedSimulation?.id === item.id
+                          ? "border-[#c8a96e] bg-[#c8a96e]/10"
+                          : "border-[#e8dfd0]/50 bg-[#faf6f1] hover:border-[#c8a96e]/40"
+                      }`}
+                    >
+                      <p className="font-medium text-[#2c2c2c]">{item.target_job}</p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {new Date(item.created_at).toLocaleDateString()} · {item.time_estimate.total_weeks_needed} weeks
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No simulations yet.</p>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-[#e8dfd0]/50 bg-[#faf6f1] p-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Details</p>
+                {selectedSimulation ? (
+                  <div className="mt-3 space-y-3 text-sm text-gray-600">
+                    <p>
+                      <span className="font-semibold text-[#2c2c2c]">Role:</span> {selectedSimulation.target_job}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#2c2c2c]">Growth:</span>{" "}
+                      {selectedSimulation.salary_growth >= 0 ? "+" : ""}
+                      {selectedSimulation.salary_growth.toFixed(1)}%
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#2c2c2c]">Weeks:</span> {selectedSimulation.time_estimate.total_weeks_needed}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#2c2c2c]">Recommended skills:</span>{" "}
+                      {selectedSimulation.recommended_skills.join(", ")}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-gray-500">Select a simulation to load its full details from the backend.</p>
                 )}
               </div>
             </div>

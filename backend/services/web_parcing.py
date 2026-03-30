@@ -1,65 +1,95 @@
-import asyncio
 import httpx
+import re
 from bs4 import BeautifulSoup
 
-async def get_html(url):
+BASE_URL = "https://www.work.ua"
+
+
+def parse_salary(salary_text: str) -> int:
+    if not salary_text:
+        return 0
+
+    cleaned = salary_text.replace("\u202f", "").replace("\u2009", "").replace("\xa0", "")
+    numbers = re.findall(r"\d+", cleaned)
+    numbers = list(map(int, numbers))
+
+    if not numbers:
+        return 0
+
+    if len(numbers) >= 2:
+        return sum(numbers[:2]) // 2
+
+    return numbers[0]
+
+
+async def fetch_html(client: httpx.AsyncClient, url: str) -> str | None:
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, follow_redirects=True)
-            response.raise_for_status()
-            return response.text
-    except httpx.RequestError as e:
-        print(f"Error fetching the URL: {e}")
+        response = await client.get(
+            url,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        response.raise_for_status()
+        return response.text
+    except httpx.RequestError as error:
+        print(f"[ERROR] Request failed: {error}")
         return None
 
+
 async def parse_job_listings(target_job: str):
-    url = f"https://www.work.ua/jobs-{target_job.lower().replace(' ', '+')}/"
-    html = await get_html(url)
-    
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        url = f"{BASE_URL}/jobs-{target_job.lower().replace(' ', '+')}/"
+        html = await fetch_html(client, url)
+
     if not html:
         return []
 
-    soup = BeautifulSoup(html, 'html.parser')
-    all_jobs = soup.find_all('div', class_='card card-hover card-visited wordwrap job-link js-hot-block mt-sm sm:mt-lg')
+    soup = BeautifulSoup(html, "html.parser")
+    jobs = soup.select("#pjax-jobs-list div.job-link")
 
-    job_listings = []
-    for job in all_jobs:
-        title_elem = job.find('h2')
-        title = title_elem.text.strip() if title_elem else 'No Title'
-        
-        job_div = job.find('div', class_='mt-xs')
-        if not job_div:
-            continue
-            
-        job_span = job_div.find('span', class_='mr-xs')
-        company = 'No Company'
-        if job_span:
-            company_span_span = job_span.find('span', class_="strong-600")
-            if company_span_span:
-                company = company_span_span.text.strip()
-                
-        location_elem = job.find('span', class_="")
-        location = location_elem.text.strip() if location_elem else 'No Location'
+    results = []
 
-        salary = 0
-        salary_span = job.find('span', class_='strong-600')
-        if salary_span and "грн" in salary_span.text:
-            salary = salary_span.text.replace('\u202f', '').replace('\u2009', '').replace('\xa0', '')
+    for job in jobs:
+        job_id = job.get("data-id")
+        link = f"{BASE_URL}/jobs/{job_id}/" if job_id else None
 
-        needed_skills = [] #need to intagrate LLM and parse skills from job description and compare with user skills to find missing ones
+        title_elem = job.find("h2")
+        title = title_elem.text.strip() if title_elem else "No Title"
 
-        job_listings.append({
-            'title': title,
-            'company': company,
-            'location': location,
-            'salary': salary,
-            'skills': needed_skills if needed_skills else []
-        })
+        company = "No Company"
+        company_elem = job.select_one(".strong-600")
+        if company_elem:
+            company = company_elem.text.strip()
 
-    return job_listings
+        location = "No Location"
+        location_elem = job.find("span", attrs={"title": True})
+        if location_elem:
+            location = location_elem.text.strip()
+
+        salary_text = None
+        salary_elem = job.find(string=lambda value: value and "грн" in value)
+        if salary_elem:
+            salary_text = salary_elem.strip()
+
+        salary = parse_salary(salary_text) if salary_text else 0
+
+        results.append(
+            {
+                "id": job_id,
+                "title": title,
+                "company": company,
+                "location": location,
+                "salary": salary,
+                "link": link,
+            }
+        )
+
+    return results
+
 
 async def parse_youtube():
-    pass
+    return None
+
 
 async def parse_stackoverflow():
-    pass
+    return None

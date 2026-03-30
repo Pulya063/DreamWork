@@ -34,7 +34,7 @@ class Calculator:
 
     @staticmethod
     def calculate_average_market_salary(market_info):
-        market_salaries = [salary for salary in market_info.get("salary")]
+        market_salaries = [job["salary"] for job in market_info if job.get("salary")]
 
         if market_salaries:
             average_salary = sum(market_salaries) / len(market_salaries)
@@ -57,7 +57,7 @@ class Simulator:
     def __init__(self):
         self.calculator = Calculator()
 
-    def llm_response(self, target_job):
+    def llm_response(self, target_job, current_skills):
         prompt = (
             f"""You are a career advisor and labor market analyst.
             
@@ -67,6 +67,7 @@ class Simulator:
             3) Current job market statistics for this role
             
             Target job: "{target_job}"
+            Current skills: "{current_skills}" 
             
             Rules:
             - Respond ONLY with a valid JSON object
@@ -101,7 +102,7 @@ class Simulator:
 
     async def run(self, data):
         parsing_info = await parse_job_listings(data.get("target_job"))
-        llm_info = self.llm_response(data.get("target_job"))
+        llm_info = self.llm_response(data.get("target_job"), data.get("current_skills"))
 
         missing = self.calculator.get_missing_skills(data["current_skills"], required_skills=llm_info["required_skills"])
 

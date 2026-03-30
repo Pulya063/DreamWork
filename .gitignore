@@ -114,7 +114,7 @@ venv.bak/
 .vscode/
 
 # alembic
-backend/alembic.ini
+alembic.ini
 alembic/versions/
 
 # FastAPI

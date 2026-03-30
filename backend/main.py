@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api import auth, users, skills, simulation, plan, tasks, ai, notifications, resources, dashboard
+from backend.api import auth, users, simulation, plan, tasks, ai, notifications, resources, dashboard
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://0.0.0.0:3000",
 ]
 
 app.add_middleware(
@@ -20,7 +20,6 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
-app.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
 app.include_router(simulation.router, prefix="/api/simulation", tags=["Simulation"])
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
@@ -35,4 +34,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -60,16 +60,82 @@ async def generate_plan(body: PlanGenerateRequest, current_user: CurrentUser, db
     current_skills = ", ".join(simulation.input_data.get("current_skills", [])) or "not provided"
     recommended_skills = ", ".join(simulation.recommended_skills or []) or "not provided"
 
-    prompt = (
-        f"Create a detailed learning roadmap for the role '{simulation.target_job}'. "
-        f"The user can dedicate {hours_per_week} hours per week. "
-        f"Current skills: {current_skills}. "
-        f"Recommended skills to focus on: {recommended_skills}. "
-        "Return JSON only with title, total_hours, total_weeks, and phases with tasks."
+    prompt = (f"""
+        You are an expert career mentor and curriculum designer.
+        
+        Create a highly detailed and structured learning roadmap for the role: "{simulation.target_job}".
+        
+        User context:
+        - Available time: {hours_per_week} hours per week
+        - Current skills: {current_skills}
+        - Recommended skills to focus on: {recommended_skills}
+        
+        Requirements:
+        1. The roadmap must be realistic and based on the user's available weekly hours.
+        2. Calculate and include:
+           - total_hours
+           - total_weeks
+        3. Divide the roadmap into multiple phases.
+        
+        Each phase MUST include:
+        - phase (number, sequential starting from 1)
+        - name (clear and descriptive)
+        - duration_weeks
+        - hours (approximate total hours for this phase)
+        - topics (list of key topics)
+        - tasks (list of detailed tasks)
+        - resources (learning materials)
+        
+        Each task MUST include:
+        - name
+        - description (clear, practical, and actionable)
+        - priority (low | medium | high)
+        - deadline (ISO format date string, realistic based on phase duration)
+        
+        Additional rules:
+        - Tasks must be practical (projects, exercises, real-world scenarios).
+        - Avoid vague tasks like "learn basics" — be specific.
+        - Gradually increase difficulty across phases.
+        - Include at least one project per phase.
+        - Do NOT repeat skills already listed in current_skills unless necessary.
+        - Focus more on recommended_skills.
+        - Deadlines must align with the phase duration and be logically distributed.
+        - Resources should be real and relevant (courses, docs, YouTube, etc.).
+        
+        Output format:
+        Return ONLY valid JSON. No explanations, no markdown, no extra text.
+        
+        JSON structure:
+        
+        {{
+          "title": "Roadmap for ...",
+          "total_hours": number,
+          "total_weeks": number,
+          "phases": [
+            {{
+              "phase": number,
+              "name": "...",
+              "duration_weeks": number,
+              "hours": number,
+              "topics": ["...", "..."] (from all tasks),
+              "tasks": [
+                {{
+                  "name": "...",
+                  "description": "...",
+                  "priority": "low | medium | high",
+                  "deadline": "YYYY-MM-DDTHH:MM:SS"
+                  "topic": "..."
+                }}
+              ],
+              "resources": ["...", "..."]
+            }}
+          ]
+        }}
+        """
     )
 
-    _ = prompt
-    ai_response = json.loads(json.dumps(example_generate_plan))
+    from backend.example_ai_responses import generate_plan as example_generate_plan
+    ai_response = example_generate_plan
 
     plan = Plan(
         title=ai_response["title"],
@@ -102,6 +168,7 @@ async def generate_plan(body: PlanGenerateRequest, current_user: CurrentUser, db
                 deadline=parse_deadline(task_data.get("deadline")),
                 phase_id=phase.id,
                 user_id=current_user.id,
+                topic=task_data["topic"],
             )
             db.add(task)
 

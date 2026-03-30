@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from backend.api.auth import CurrentUser
 from backend.database.db import SessionDep
-from backend.database.models import Simulation
+from backend.database.models import Simulation, JobProfile
 from backend.database.schemas import SimulationRequest, SimulationResponse
 from backend.services.simulator import Simulator
 
@@ -24,6 +24,11 @@ async def run_simulation(body: SimulationRequest, current_user: CurrentUser, db:
         "current_income": body.current_income,
         "current_skills": [skill for skill in body.skills],
     }
+
+    target_job = JobProfile(
+        target_job=body.target_job,
+        target_salary=body.current_income,
+    )
 
     simulate_result = await simulator.run(input_data)
 

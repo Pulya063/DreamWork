@@ -10,9 +10,15 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy import select
 
+
 from backend.database.db import SessionDep
 from backend.database.models import User
 from backend.database.schemas import UserRegister, UserResponse
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # --- Configuration ---
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
@@ -22,9 +28,10 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
 if SECRET_KEY is None:
     raise ValueError("SECRET_KEY environment variable not set.")
-
-r = Redis(host='redis', port=6379, password='secret_password')
 router = APIRouter()
+
+r = Redis(host='localhost', port=6379)
+
 
 # --- Security & Hashing ---
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -100,7 +107,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 @router.post('/register', status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def register(user_data: UserRegister, db: SessionDep):
     # Check for existing user with the same email
-    db_user = await db.execute(select(User.email, User.username).where(User.email == user_data.email))
+    db_user = await db.execute(select(User).where(User.email == user_data.email))
     user = db_user.first()
 
     if user and (user.email or user.username):

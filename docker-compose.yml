@@ -8,11 +8,15 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=secret_password
+      - SECRET_KEY=your_secret_key_here
+      - ALGORITHM=HS256
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build: ./frontend
@@ -26,7 +30,7 @@ services:
 
   db:
     image: postgres:15-alpine
-    container_name: postgres-db
+    container_name: dream_work
     restart: always
     environment:
       - POSTGRES_USER=admin
@@ -34,13 +38,19 @@ services:
       - POSTGRES_DB=dream_work
     ports:
       - "5432:5432"
-
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d dream_work" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   redis:
     image: "redis:alpine"
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "secret_password", "ping" ]
+      test: [ "CMD", "redis-cli",  "ping"] #"-a", "secret_password"]
       interval: 5s
       timeout: 3s
       retries: 5
     restart: always
-    command: redis-server --requirepass secret_password
+    ports:
+      - "6379:6379"
+

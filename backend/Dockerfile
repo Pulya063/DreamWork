@@ -4,7 +4,7 @@
 FROM python:3.11-slim
 
 # Set working directory
-WORKDIR /app
+WORKDIR /app/backend
 
 # Install uv
 RUN pip install uv
@@ -17,7 +17,7 @@ RUN uv sync
 
 # Copy the rest of the application code
 COPY . .
-
+ENV PYTHONPATH=/app
 # Expose the port the app runs on
 EXPOSE 8000
 

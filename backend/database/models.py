@@ -36,13 +36,10 @@ class Skill(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String)
-    level: Mapped[int] = mapped_column(Integer)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    simulation_id: Mapped[int] = mapped_column(ForeignKey("simulations.id"))
 
     user: Mapped["User"] = relationship(back_populates="skills")
-    simulation: Mapped["Simulation"] = relationship(back_populates="skills")
 
 
 class Simulation(Base):
@@ -58,10 +55,9 @@ class Simulation(Base):
     salary_growth: Mapped[float] = mapped_column(Float)
     recommended_skills: Mapped[list] = mapped_column(JSON, default=[])
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="simulations")
-    skills: Mapped[List["Skill"]] = relationship(back_populates="simulation", cascade="all, delete-orphan")
     plans: Mapped[List["Plan"]] = relationship(back_populates="simulation", cascade="all, delete-orphan")
 
 
@@ -83,15 +79,16 @@ class Task(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
+    topic: Mapped[str] = mapped_column(String)
 
     priority: Mapped[str] = mapped_column(String, default="medium")  # low, medium, high
-    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     phase_id: Mapped[Optional[int]] = mapped_column(ForeignKey("phases.id"))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User"] = relationship(back_populates="tasks")
     phase: Mapped["Phase"] = relationship(back_populates="tasks")
@@ -126,7 +123,7 @@ class Plan(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     simulation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("simulations.id"))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="plans")
     simulation: Mapped[Optional["Simulation"]] = relationship(back_populates="plans")

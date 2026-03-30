@@ -1,51 +1,332 @@
 generate_plan = {
-  "title": "Roadmap для Junior Python Developer",
-  "total_hours": 850,
-  "total_weeks": 85,
+  "title": "Roadmap for Junior Python Developer",
+  "total_hours": 720,
+  "total_weeks": 36,
   "phases": [
     {
       "phase": 1,
-      "name": "Основи Python",
-      "duration_weeks": 10,
-      "hours": 100,
-      "topics": ["Синтаксис Python", "Типи даних", "Умови", "Цикли", "Функції"],
+      "name": "Python Fundamentals",
+      "duration_weeks": 6,
+      "hours": 120,
+      "topics": [
+        "Python Syntax",
+        "Control Flow",
+        "Functions",
+        "Data Structures",
+        "CLI Project"
+      ],
       "tasks": [
         {
-          "name": "Вивчити базовий синтаксис Python",
-          "description": "Ознайомся з базовими конструкціями мови Python, такими як змінні, типи даних та оператори. Напиши прості програми для закріплення знань, наприклад калькулятор або програму для обробки введених даних.",
-          "priority": "medium",
-          "deadline": "2026-04-20T18:00:00"
+          "name": "Learn Python syntax and variables",
+          "description": "Study variables, data types, operators, and basic input/output. Write small scripts like a calculator and string formatter.",
+          "priority": "high",
+          "deadline": "2026-04-10T18:00:00",
+          "topic": "Python Syntax"
         },
         {
-          "name": "Практика умов і циклів",
-          "description": "Розв'яжи кілька задач з використанням умовних операторів та циклів. Це допоможе краще зрозуміти логіку програмування і навчитися будувати алгоритми.",
+          "name": "Practice control flow",
+          "description": "Solve 20+ problems using if/else conditions and loops to build algorithmic thinking.",
+          "priority": "high",
+          "deadline": "2026-04-15T18:00:00",
+          "topic": "Control Flow"
+        },
+        {
+          "name": "Master functions",
+          "description": "Create reusable functions, understand parameters and return values, and refactor previous scripts.",
           "priority": "medium",
-          "deadline": "2026-04-20T18:00:00"
+          "deadline": "2026-04-20T18:00:00",
+          "topic": "Functions"
+        },
+        {
+          "name": "Work with data structures",
+          "description": "Practice lists, dictionaries, sets, and tuples with real examples like parsing data.",
+          "priority": "medium",
+          "deadline": "2026-04-25T18:00:00",
+          "topic": "Data Structures"
+        },
+        {
+          "name": "Build CLI To-Do App",
+          "description": "Create a command-line to-do list app with add/remove/list features and file persistence.",
+          "priority": "high",
+          "deadline": "2026-05-05T18:00:00",
+          "topic": "CLI Project"
         }
       ],
-      "resources": ["Python Official Docs", "freeCodeCamp Python Course"]
+      "resources": [
+        "Python Official Documentation",
+        "Automate the Boring Stuff with Python",
+        "freeCodeCamp Python Course"
+      ]
     },
     {
       "phase": 2,
-      "name": "Об'єктно-орієнтоване програмування",
-      "duration_weeks": 12,
-      "hours": 120,
-      "topics": ["Класи", "Наслідування", "Інкапсуляція", "Поліморфізм"],
+      "name": "Object-Oriented Programming",
+      "duration_weeks": 5,
+      "hours": 100,
+      "topics": [
+        "Classes",
+        "Inheritance",
+        "Encapsulation",
+        "Polymorphism",
+        "OOP Project"
+      ],
       "tasks": [
         {
-          "name": "Створення власних класів",
-          "description": "Навчися створювати класи та об'єкти в Python. Реалізуй прості приклади, такі як класи для користувача або продукту, щоб зрозуміти структуру ООП.",
-          "priority": "medium",
-          "deadline": "2026-05-05"
+          "name": "Create classes and objects",
+          "description": "Design classes like User and Product with attributes and methods.",
+          "priority": "high",
+          "deadline": "2026-05-10T18:00:00",
+          "topic": "Classes"
         },
         {
-          "name": "Практика ООП на проєкті",
-          "description": "Створи невеликий проєкт, наприклад систему управління бібліотекою або списком задач. Використай принципи ООП для організації коду.",
+          "name": "Apply inheritance",
+          "description": "Extend base classes and reuse logic across subclasses.",
           "priority": "medium",
-          "deadline": "2026-05-20"
+          "deadline": "2026-05-15T18:00:00",
+          "topic": "Inheritance"
+        },
+        {
+          "name": "Use encapsulation",
+          "description": "Implement private attributes and getters/setters.",
+          "priority": "medium",
+          "deadline": "2026-05-20T18:00:00",
+          "topic": "Encapsulation"
+        },
+        {
+          "name": "Understand polymorphism",
+          "description": "Override methods and implement flexible interfaces.",
+          "priority": "medium",
+          "deadline": "2026-05-25T18:00:00",
+          "topic": "Polymorphism"
+        },
+        {
+          "name": "Build Library Management System",
+          "description": "Create a CLI app using OOP for managing books, users, and borrowing logic.",
+          "priority": "high",
+          "deadline": "2026-06-05T18:00:00",
+          "topic": "OOP Project"
         }
       ],
-      "resources": ["Real Python", "Corey Schafer YouTube Channel"]
+      "resources": [
+        "Real Python",
+        "Corey Schafer YouTube",
+        "Python OOP Tutorials"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Databases and SQL",
+      "duration_weeks": 5,
+      "hours": 100,
+      "topics": [
+        "SQL Basics",
+        "CRUD Operations",
+        "PostgreSQL",
+        "SQLAlchemy",
+        "Database Project"
+      ],
+      "tasks": [
+        {
+          "name": "Learn SQL basics",
+          "description": "Practice SELECT, INSERT, UPDATE, DELETE queries.",
+          "priority": "high",
+          "deadline": "2026-06-10T18:00:00",
+          "topic": "SQL Basics"
+        },
+        {
+          "name": "Perform CRUD operations",
+          "description": "Work with real datasets and build queries.",
+          "priority": "high",
+          "deadline": "2026-06-15T18:00:00",
+          "topic": "CRUD Operations"
+        },
+        {
+          "name": "Set up PostgreSQL",
+          "description": "Install and configure PostgreSQL locally and connect via Python.",
+          "priority": "medium",
+          "deadline": "2026-06-20T18:00:00",
+          "topic": "PostgreSQL"
+        },
+        {
+          "name": "Use SQLAlchemy ORM",
+          "description": "Define models and perform async database operations.",
+          "priority": "high",
+          "deadline": "2026-06-25T18:00:00",
+          "topic": "SQLAlchemy"
+        },
+        {
+          "name": "Build Notes API with DB",
+          "description": "Create a backend storing notes in PostgreSQL using FastAPI and SQLAlchemy.",
+          "priority": "high",
+          "deadline": "2026-07-05T18:00:00",
+          "topic": "Database Project"
+        }
+      ],
+      "resources": [
+        "PostgreSQL Documentation",
+        "SQLBolt",
+        "SQLAlchemy Docs"
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "FastAPI and Backend Development",
+      "duration_weeks": 6,
+      "hours": 120,
+      "topics": [
+        "FastAPI Basics",
+        "Routing",
+        "Dependency Injection",
+        "Pydantic",
+        "REST API",
+        "Backend Project"
+      ],
+      "tasks": [
+        {
+          "name": "Learn FastAPI basics",
+          "description": "Create basic endpoints and understand request/response flow.",
+          "priority": "high",
+          "deadline": "2026-07-10T18:00:00",
+          "topic": "FastAPI Basics"
+        },
+        {
+          "name": "Implement routing",
+          "description": "Structure endpoints and group routes logically.",
+          "priority": "medium",
+          "deadline": "2026-07-15T18:00:00",
+          "topic": "Routing"
+        },
+        {
+          "name": "Use dependency injection",
+          "description": "Apply Depends and manage database sessions.",
+          "priority": "high",
+          "deadline": "2026-07-20T18:00:00",
+          "topic": "Dependency Injection"
+        },
+        {
+          "name": "Validate data with Pydantic",
+          "description": "Define schemas and validate incoming/outgoing data.",
+          "priority": "medium",
+          "deadline": "2026-07-25T18:00:00",
+          "topic": "Pydantic"
+        },
+        {
+          "name": "Build full REST API",
+          "description": "Develop a full-featured backend with CRUD, validation, and DB integration.",
+          "priority": "high",
+          "deadline": "2026-08-10T18:00:00",
+          "topic": "Backend Project"
+        }
+      ],
+      "resources": [
+        "FastAPI Documentation",
+        "TestDriven.io",
+        "Full Stack FastAPI Template"
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Testing and Code Quality",
+      "duration_weeks": 4,
+      "hours": 80,
+      "topics": [
+        "Pytest",
+        "Unit Testing",
+        "Debugging",
+        "Logging",
+        "Refactoring"
+      ],
+      "tasks": [
+        {
+          "name": "Write tests with pytest",
+          "description": "Create unit tests for API endpoints and logic.",
+          "priority": "high",
+          "deadline": "2026-08-15T18:00:00",
+          "topic": "Pytest"
+        },
+        {
+          "name": "Practice debugging",
+          "description": "Use breakpoints and logs to fix bugs.",
+          "priority": "medium",
+          "deadline": "2026-08-20T18:00:00",
+          "topic": "Debugging"
+        },
+        {
+          "name": "Implement logging",
+          "description": "Add structured logging to your application.",
+          "priority": "medium",
+          "deadline": "2026-08-25T18:00:00",
+          "topic": "Logging"
+        },
+        {
+          "name": "Refactor codebase",
+          "description": "Improve structure, readability, and maintainability.",
+          "priority": "high",
+          "deadline": "2026-08-30T18:00:00",
+          "topic": "Refactoring"
+        }
+      ],
+      "resources": [
+        "Pytest Documentation",
+        "Clean Code",
+        "Python Logging Docs"
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Deployment and Career Preparation",
+      "duration_weeks": 10,
+      "hours": 200,
+      "topics": [
+        "Docker",
+        "CI/CD",
+        "Cloud Deployment",
+        "Git",
+        "Interview Prep"
+      ],
+      "tasks": [
+        {
+          "name": "Learn Docker basics",
+          "description": "Containerize your FastAPI application.",
+          "priority": "high",
+          "deadline": "2026-09-05T18:00:00",
+          "topic": "Docker"
+        },
+        {
+          "name": "Set up CI/CD",
+          "description": "Automate testing and deployment pipelines.",
+          "priority": "medium",
+          "deadline": "2026-09-15T18:00:00",
+          "topic": "CI/CD"
+        },
+        {
+          "name": "Deploy to cloud",
+          "description": "Deploy your app to platforms like Render or AWS.",
+          "priority": "high",
+          "deadline": "2026-09-30T18:00:00",
+          "topic": "Cloud Deployment"
+        },
+        {
+          "name": "Improve Git workflow",
+          "description": "Use branches, commits, and pull requests effectively.",
+          "priority": "medium",
+          "deadline": "2026-10-10T18:00:00",
+          "topic": "Git"
+        },
+        {
+          "name": "Prepare for interviews",
+          "description": "Solve coding problems and practice backend interview questions.",
+          "priority": "high",
+          "deadline": "2026-11-15T18:00:00",
+          "topic": "Interview Prep"
+        }
+      ],
+      "resources": [
+        "Docker Documentation",
+        "GitHub Guides",
+        "LeetCode",
+        "System Design Primer"
+      ]
     }
   ]
 }

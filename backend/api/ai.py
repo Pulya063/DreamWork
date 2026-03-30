@@ -22,26 +22,26 @@ router = APIRouter()
 #
 # client = AsyncOpenAI(api_key=API_KEY)
 
-async def get_ai_response(prompt: str) -> str:
-    # response = await client.chat.completions.create(
-    #     model="gpt-4o-mini",
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.4,
-    #     response_format={"type": "json_object"}
-    # )
-    #
-    # json_string = response.choices[0].message.content
-
-    json_string = {
-        "dwad": 1,
-        "awd": "awdaw"
-    }
-
-    json_string_data = json.dumps(json_string)
-
-    data = json.loads(json_string_data)
-
-    return data
+# async def get_ai_response(prompt: str) -> str:
+#     # response = await client.chat.completions.create(
+#     #     model="gpt-4o-mini",
+#     #     messages=[{"role": "user", "content": prompt}],
+#     #     temperature=0.4,
+#     #     response_format={"type": "json_object"}
+#     # )
+#     #
+#     # json_string = response.choices[0].message.content
+#
+#     json_string = {
+#         "dwad": 1,
+#         "awd": "awdaw"
+#     }
+#
+#     json_string_data = json.dumps(json_string)
+#
+#     data = json.loads(json_string_data)
+#
+#     return data
 # ─── LLM helper ────────────────────────────────────────────
 
 def get_ai_response(prompt: str) -> dict:

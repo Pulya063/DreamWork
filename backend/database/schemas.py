@@ -37,16 +37,15 @@ class UserResponse(Base):
 
 class Skill(Base):
     name: str
-    level: Optional[str | int]
 
 class SimulationRequest(Base):
-    age: Optional[int]
+    age: Optional[int] = None
     gender: Optional[str] = None
     marital_status: Optional[str] = None
     target_job: str = Field(min_length=2, max_length=50)
     skills: List[str]
     hours_per_week: int = Field(gt=0)
-    current_income: float = Field(gt=0)
+    current_income: int = Field(gt=0)
 
     @field_validator('hours_per_week')
     def hours_must_be_positive(cls, v):

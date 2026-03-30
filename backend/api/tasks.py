@@ -7,11 +7,12 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from backend.api.ai import verify_task
 from backend.api.auth import CurrentUser
 from backend.database.db import SessionDep
-from backend.database.models import Task
+from backend.database.models import Task, Skill, User
 from backend.database.schemas import TaskResponse, TaskVerificationRequest, TaskVerificationResponse, VerifyTaskRequest
 from backend.services.user_snapshot import get_dashboard_response, to_task_response
 
@@ -37,9 +38,9 @@ async def verify_task_endpoint(
     db: SessionDep,
 ):
     db_result = await db.execute(
-        select(Task).where(
+        select(Task).options(selectinload(Task.user).selectinload(User.skills)).where(
             Task.id == id,
-            Task.user_id == current_user.id,
+            Task.user_id == current_user.id
         )
     )
     task = db_result.scalar_one_or_none()
@@ -54,6 +55,17 @@ async def verify_task_endpoint(
         )
     )
 
+    if verification.completed:
+        if task.title not in [skill.name for skill in task.user.skills]:
+            update_skills = Skill(
+                name=task.topic,
+                user_id=current_user.id,
+            )
+            db.add(update_skills)
+            await db.commit()
+            await db.refresh(update_skills)
+
+
     task.completed_at = datetime.now(timezone.utc) if verification.completed else None
 
     db.add(task)
@@ -63,7 +75,7 @@ async def verify_task_endpoint(
     return TaskVerificationResponse(
         verification=verification,
         updated_task=to_task_response(task),
-        dashboard=await get_dashboard_response(current_user.id, db),
+        dashboard = await get_dashboard_response(current_user.id, db),
     )
 
 
